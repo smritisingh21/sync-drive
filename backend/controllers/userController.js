@@ -3,6 +3,7 @@ import User from "../models/UserSchema.js";
 import mongoose, { Types } from "mongoose";
 import crypto from 'node:crypto'
 import bcrypt from 'bcrypt'
+import Session from "../models/sessionModel.js";
 
 
 export const register = async (req, res, next) => {
@@ -74,14 +75,18 @@ export const login = async (req, res, next) => {
   if(!isPwdValid ) {
     return res.status(404).json({error : "Invalid credentials"})
   }
+  const session = await Session.create({userId : user._id})
+  const allSessions = await Session.find({userId : user._id})
+  if(allSessions > 3){
+    await allSessions[0].deleteOne();
+  }
  
   const cookiePayload = JSON.stringify({
     id : user._id,
     expiry: Math.round(Date.now()/1000 + 100000),
   })
 
- //now cookie will automatically get signed
-  res.cookie("token",Buffer.from(cookiePayload).toString("base64url"), {
+  res.cookie("sid",session.id, {
     httpOnly: true,
     signed : true,
     maxAge: 60 * 1000 * 60 * 24 * 7,
@@ -97,6 +102,6 @@ export const getCurrentUser = (req, res) => {
 };
 
 export const logout = (req, res) => {
-  res.clearCookie("uid");
+  res.clearCookie("sid");
   res.status(204).end();
 };

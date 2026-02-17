@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -9,7 +10,6 @@ import checkAuth from "./middlewares/authMiddleware.js";
 import connectDB from "./config/db.js";
 
 await connectDB();
-dotenv.config();
 export const secret = "SyncDriveSecret"
 
 const app = express();
@@ -22,6 +22,7 @@ app.use(
   })
 );
 
+console.log("ENV:", process.env.MONGODB_CONNECTION_STRING);
 app.use("/directory", checkAuth, directoryRoutes);
 app.use("/file", checkAuth, fileRoutes);
 app.use("/user", userRoutes);
