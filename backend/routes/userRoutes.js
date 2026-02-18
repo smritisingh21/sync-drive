@@ -4,6 +4,7 @@ import {
   getCurrentUser,
   login,
   logout,
+  logoutAllDevices,
   register,
 } from "../controllers/userController.js";
 
@@ -16,5 +17,6 @@ router.post("/login", login);
 router.get("/", checkAuth, getCurrentUser);
 
 router.post("/logout", logout);
+router.post("/logoutAllDevices", logoutAllDevices);
 
 export default router;
