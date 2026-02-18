@@ -57,6 +57,17 @@ function DirectoryHeader({
       }
     } catch (err) { console.error("Logout error:", err); } finally { setShowUserMenu(false); }
   };
+  const handleLogoutAll = async () => {
+    try {
+      const response = await fetch(`${BASE_URL}/user/logoutAllDevices`, { method: "POST", credentials: "include" });
+      if (response.ok) {
+        setLoggedIn(false);
+        setUserName("Guest User");
+        setUserEmail("guest@example.com");
+        navigate("/login");
+      }
+    } catch (err) { console.error("Logout error:", err); } finally { setShowUserMenu(false); }
+  };
 
   useEffect(() => {
     function handleDocumentClick(e) {
@@ -129,6 +140,15 @@ function DirectoryHeader({
                   >
                     <FaSignOutAlt />
                     <span className="font-medium">Logout</span>
+                  </button>
+               
+                  <div className="border-t border-slate-100" />
+                  <button
+                    onClick={handleLogoutAll}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <FaSignOutAlt />
+                    <span className="font-medium">Logout from all devices</span>
                   </button>
                 </>
               ) : (

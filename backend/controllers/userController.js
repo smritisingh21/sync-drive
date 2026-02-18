@@ -101,7 +101,17 @@ export const getCurrentUser = (req, res) => {
   });
 };
 
-export const logout = (req, res) => {
+export const logout = async (req, res) => {
+  const {sid} = req.signedCookies;
+  await Session.findById(sid);
+  res.clearCookie("sid");
+  res.status(204).end();
+};
+
+export const logoutAllDevices =  async (req, res) => {
+  const {sid} = req.signedCookies;
+  const session = await Session.findById(sid) 
+  await Session.deleteMany({userId : session.userId});
   res.clearCookie("sid");
   res.status(204).end();
 };
