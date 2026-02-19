@@ -2,19 +2,12 @@ import Directory from "../models/directorySchema.js";
 import User from "../models/UserSchema.js";
 import mongoose, { Types } from "mongoose";
 import Session from "../models/sessionModel.js";
-import { sendOtpService } from "../services/otpService.js";
-import OTP from "../models/otpSchema.js";
 
 export const register = async (req, res, next) => {
-  const { name, email, password, otp } = req.body;
-  const otpRecord = await OTP.findOne({ email, otp });
-  
-  if (!otpRecord) {
-    return res.status(400).json({ error: "Invalid or Expired OTP!" });
-  }
+  const { name, email, password} = req.body;
 
-  await otpRecord.deleteOne();
   const session = await mongoose.startSession();
+
   try {
     const rootDirId = new Types.ObjectId();
     const userId = new Types.ObjectId();
@@ -69,12 +62,13 @@ export const register = async (req, res, next) => {
 export const login = async (req, res, next) => {
   const { email, password } = req.body;
   const user = await User.findOne({ email });
-
+  
   if (!user) {
     return res.status(404).json({ error: "Invalid Credentials" });
   }
 
   const isPasswordValid = await user.comparePassword(password);
+  console.log(isPasswordValid);
 
   if (!isPasswordValid) {
     return res.status(404).json({ error: "Invalid Credentials" });
@@ -119,20 +113,4 @@ export const logoutAllDevices = async (req, res) => {
 };
 
 
-export const sendOTP = async (req, res, next) => {
-  const { email } = req.body;
-  const resData = await sendOtpService(email);
-  res.status(201).json(resData);
-};
-
-export const verifyOTP = async (req, res, next) => {
-  const { email, otp } = req.body;
-  const otpRecord = await OTP.findOne({ email, otp });
-
-  if (!otpRecord) {
-    return res.status(400).json({ error: "Invalid or Expired OTP!" });
-  }
-
-  return res.json({ message: "OTP Verified!" });
-};
 

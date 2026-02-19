@@ -5,8 +5,8 @@ import "./Auth.css";
 const Login = () => {
   const BASE_URL = "http://localhost:8000";
   const [formData, setFormData] = useState({
-    email: "anurag@gmail.com",
-    password: "abcd",
+    email: "smritiiisinghh@gmail.com",
+    password: "1234",
     
   });
 
