@@ -48,7 +48,9 @@ function DirectoryHeader({
 
   const handleLogout = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/user/logout`, { method: "POST", credentials: "include" });
+      const response = await fetch(`${BASE_URL}/user/logout`, {
+         method: "POST",
+         credentials: "include" });
       if (response.ok) {
         setLoggedIn(false);
         setUserName("Guest User");
@@ -59,7 +61,10 @@ function DirectoryHeader({
   };
   const handleLogoutAll = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/user/logoutAllDevices`, { method: "POST", credentials: "include" });
+      const response = await fetch(`${BASE_URL}/user/logoutAllDevices`, { 
+        method: "POST", 
+        credentials: "include" 
+      });
       if (response.ok) {
         setLoggedIn(false);
         setUserName("Guest User");
