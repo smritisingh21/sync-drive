@@ -1,24 +1,11 @@
 import Directory from "../models/directorySchema.js";
 import User from "../models/UserSchema.js";
 import mongoose, { Types } from "mongoose";
-import crypto from 'node:crypto'
-import bcrypt from 'bcrypt'
 import Session from "../models/sessionModel.js";
 
-
 export const register = async (req, res, next) => {
-  const { name, email, password } = req.body;
-  const foundUser = await User.findOne({ email }).lean();
+  const { name, email, password} = req.body;
 
-  const hashedPwd =await bcrypt.hash(password , 10);
-
-  if (foundUser) {
-    return res.status(409).json({
-      error: "User already exists",
-      message:
-        "A user with this email address already exists. Please try logging in or use a different email.",
-    });
-  }
   const session = await mongoose.startSession();
 
   try {
@@ -42,7 +29,7 @@ export const register = async (req, res, next) => {
         _id: userId,
         name,
         email,
-        password : hashedPwd,
+        password,
         rootDirId,
       },
       { session }
@@ -53,10 +40,19 @@ export const register = async (req, res, next) => {
     res.status(201).json({ message: "User Registered" });
   } catch (err) {
     session.abortTransaction();
+    console.log(err);
     if (err.code === 121) {
       res
         .status(400)
         .json({ error: "Invalid input, please enter valid details" });
+    } else if (err.code === 11000) {
+      if (err.keyValue.email) {
+        return res.status(409).json({
+          error: "This email already exists",
+          message:
+            "A user with this email address already exists. Please try logging in or use a different email.",
+        });
+      }
     } else {
       next(err);
     }
@@ -65,30 +61,30 @@ export const register = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   const { email, password } = req.body;
-
-   const user = await User.findOne({ email });
+  const user = await User.findOne({ email });
+  
   if (!user) {
     return res.status(404).json({ error: "Invalid Credentials" });
   }
 
-  const isPwdValid = bcrypt.compare(password , user.password)
-  if(!isPwdValid ) {
-    return res.status(404).json({error : "Invalid credentials"})
+  const isPasswordValid = await user.comparePassword(password);
+  console.log(isPasswordValid);
+
+  if (!isPasswordValid) {
+    return res.status(404).json({ error: "Invalid Credentials" });
   }
-  const session = await Session.create({userId : user._id})
-  const allSessions = await Session.find({userId : user._id})
-  if(allSessions > 3){
+
+  const allSessions = await Session.find({ userId: user.id });
+
+  if (allSessions.length >= 2) {
     await allSessions[0].deleteOne();
   }
- 
-  const cookiePayload = JSON.stringify({
-    id : user._id,
-    expiry: Math.round(Date.now()/1000 + 100000),
-  })
 
-  res.cookie("sid",session.id, {
+  const session = await Session.create({ userId: user._id });
+
+  res.cookie("sid", session.id, {
     httpOnly: true,
-    signed : true,
+    signed: true,
     maxAge: 60 * 1000 * 60 * 24 * 7,
   });
   res.json({ message: "logged in" });
@@ -102,16 +98,19 @@ export const getCurrentUser = (req, res) => {
 };
 
 export const logout = async (req, res) => {
-  const {sid} = req.signedCookies;
-  await Session.findById(sid);
+  const { sid } = req.signedCookies;
+  await Session.findByIdAndDelete(sid);
   res.clearCookie("sid");
   res.status(204).end();
 };
 
-export const logoutAllDevices =  async (req, res) => {
-  const {sid} = req.signedCookies;
-  const session = await Session.findById(sid) 
-  await Session.deleteMany({userId : session.userId});
+export const logoutAllDevices = async (req, res) => {
+  const { sid } = req.signedCookies;
+  const session = await Session.findById(sid);
+  await Session.deleteMany({ userId: session.userId });
   res.clearCookie("sid");
   res.status(204).end();
 };
+
+
+
