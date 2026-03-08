@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Auth.css";
+import { GoogleLogin } from '@react-oauth/google';
 
 const Login = () => {
   const BASE_URL = "http://localhost:8000";
@@ -108,6 +109,20 @@ const Login = () => {
       <p className="link-text">
         Don't have an account? <Link to="/register">Register</Link>
       </p>
+
+      <div className="or">
+        <span>or</span>
+        <div className="w-full">
+        <GoogleLogin
+        onSuccess={credentialResponse => {
+        console.log(credentialResponse);
+        }}
+        onError={() => {
+          console.log('Login Failed');
+        }}
+        />
+        </div>
+      </div>
     </div>
   );
 };
