@@ -17,7 +17,8 @@ export const uploadFile = async (req, res, next) => {
       return res.status(404).json({ error: "Parent directory not found!" });
     }
 
-    const filename = req.headers.filename || "untitled";
+    const filenameHeader = req.headers.filename;
+    const filename = filenameHeader ? decodeURIComponent(filenameHeader) : "untitled";
     const extension = path.extname(filename);
 
     const insertedFile = await File.insertOne({

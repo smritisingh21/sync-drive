@@ -149,7 +149,8 @@ function handleRowClick(type, id) {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${BASE_URL}/file/${dirId || ""}`, true);
     xhr.withCredentials = true;
-    xhr.setRequestHeader("filename", currentItem.name);
+    // Encode the filename so non-ISO-8859-1 characters (e.g. emoji, accents) don't break setRequestHeader
+    xhr.setRequestHeader("filename", encodeURIComponent(currentItem.name));
     xhr.upload.addEventListener("progress", (evt) => {
       if (evt.lengthComputable) {
         const progress = (evt.loaded / evt.total) * 100;

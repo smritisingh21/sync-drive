@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./Auth.css";
 import { GoogleLogin } from '@react-oauth/google';
+import { loginWithGoogle } from "./apis/loginWithGoogle";
 
 const Login = () => {
   const BASE_URL = "http://localhost:8000";
@@ -113,14 +114,17 @@ const Login = () => {
       <div className="or">
         <span>or</span>
         <div className="w-full">
-        <GoogleLogin
-        onSuccess={credentialResponse => {
-        console.log(credentialResponse);
-        }}
-        onError={() => {
-          console.log('Login Failed');
-        }}
-        />
+       <GoogleLogin
+        onSuccess={async (credentialResponse) => {
+         const res = await loginWithGoogle(credentialResponse.credential);
+
+          if (res?.ok) {
+           navigate("/");
+          } else {
+        setServerError("Google login failed");
+    }
+  }}
+/>
         </div>
       </div>
     </div>
