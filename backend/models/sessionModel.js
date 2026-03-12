@@ -10,7 +10,7 @@ const sessionSchema = new Schema(
         type : Date,
         default : Date.now,
         required :"true",
-        expires : 36000, 
+        expires : 360000000, 
     },
   },
   {

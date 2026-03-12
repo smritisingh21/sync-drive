@@ -11,11 +11,8 @@ const Register = () => {
     password: "1234",
   });
 
-  // serverError will hold the error message from the server
   const [serverError, setServerError] = useState("");
-
   const [isSuccess, setIsSuccess] = useState(false);
-
   const navigate = useNavigate();
 
   // Handler for input changes
