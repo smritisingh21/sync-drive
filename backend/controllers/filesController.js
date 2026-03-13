@@ -18,6 +18,7 @@ export const uploadFile = async (req, res, next) => {
     }
 
     const filenameHeader = req.headers.filename;
+    
     const filename = filenameHeader ? decodeURIComponent(filenameHeader) : "untitled";
     const extension = path.extname(filename);
 
