@@ -12,11 +12,14 @@ export default async function checkAuth(req, res, next) {
   }
 
   const sessionData = await redisClient.get(`session:${sid}`);
-  console.log("session found", sessionData);
+  console.log("Session found", sessionData);
 
   if (!sessionData) {
-    res.clearCookie("sid");
-    return res.status(401).json({ error: "Not logged in!" });
+    res.clearCookie("sid", {
+      httpOnly: true,
+      signed: true
+    });
+    return res.status(401).json({ error: "Session invalidated. Please login again." });
   }
 
   const session = JSON.parse(sessionData);   // ← important

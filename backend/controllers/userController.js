@@ -83,7 +83,9 @@ export const login = async (req, res, next) => {
   // const session = await Session.create({ userId: user._id });
   // const session = await redisClient.get(`session:${sid}`)
 
-  //creating session in redis
+
+
+//creating session in redis
   const sessionId = crypto.randomUUID()
   const redisKey = `session:${sessionId}`
   
@@ -92,6 +94,16 @@ export const login = async (req, res, next) => {
     rootDirId: user.rootDirId,
    })
 );
+  await redisClient.rPush(
+  `user_sessions:${user._id}`,
+    sessionId
+  )
+  const allSessions = await redisClient.lLen(`user_sessions:${user._id}`);
+
+  if(allSessions > 3){
+    const oldSession = await redisClient.lPop(`user_sessions:${user._id}`);
+    await redisClient.del(`session:${oldSession}`);
+  }
   const sessionExpiry = 60*1000*60*24*7
   await redisClient.expire(redisKey, sessionExpiry /1000)
 
@@ -114,31 +126,51 @@ export const getCurrentUser = (req, res) => {
 
 export const logout = async (req, res) => {
   const { sid } = req.signedCookies;
-  await redisClient.del(`session:${sid}`)
+
+  const sessionData = await redisClient.get(`session:${sid}`);
+
+  if (sessionData) {
+    const session = JSON.parse(sessionData);
+
+    // remove session from the list
+    await redisClient.lRem(
+      `user_sessions:${session.userId}`,
+      0,
+      sid
+    );
+  }
+
+  // delete session key
+  await redisClient.del(`session:${sid}`);
   res.clearCookie("sid");
   res.status(204).end();
 };
+
 
 export const logoutAllDevices = async (req, res) => {
   const { sid } = req.signedCookies;
 
   const sessionData = await redisClient.get(`session:${sid}`);
-  const session = JSON.parse(sessionData);
-
-  const keys = await redisClient.keys("session:*");
-
-  for (const key of keys) {
-    const data = await redisClient.get(key);
-    const parsed = JSON.parse(data);
-
-    if (parsed.userId === session.userId) {
-      await redisClient.del(key);
-    }
+  if (!sessionData) {
+    res.clearCookie("sid");
+    return res.status(204).end();
   }
+
+  const session = JSON.parse(sessionData);
+  const userId = session.userId;
+
+  const sessionIds = await redisClient.lRange(`user_sessions:${userId}`, 0, -1);
+
+  for (const id of sessionIds) {
+    await redisClient.del(`session:${id}`);
+    console.log("Deleted users :", );
+  }
+
+  // remove the index
+  await redisClient.del(`user_sessions:${userId}`);
 
   res.clearCookie("sid");
   res.status(204).end();
 };
-
 
 
