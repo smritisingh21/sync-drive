@@ -2,6 +2,7 @@ import Directory from "../models/directorySchema.js";
 import User from "../models/UserSchema.js";
 import mongoose, { Types } from "mongoose";
 import Session from "../models/sessionModel.js";
+import redisClient from "../config/redis.js"
 
 export const register = async (req, res, next) => {
   const { name, email, password} = req.body;
@@ -68,21 +69,33 @@ export const login = async (req, res, next) => {
   }
 
   const isPasswordValid = await user.comparePassword(password);
-  console.log(isPasswordValid);
 
   if (!isPasswordValid) {
     return res.status(404).json({ error: "Invalid Credentials" });
   }
 
-  const allSessions = await Session.find({ userId: user.id });
+  // const allSessions = await Session.find({ userId: user.id });
 
-  if (allSessions.length >= 2) {
-    await allSessions[0].deleteOne();
-  }
+  // if (allSessions.length >= 2) {
+  //   await allSessions[0].deleteOne();
+  // }
 
-  const session = await Session.create({ userId: user._id });
+  // const session = await Session.create({ userId: user._id });
+  // const session = await redisClient.get(`session:${sid}`)
 
-  res.cookie("sid", session.id, {
+  //creating session in redis
+  const sessionId = crypto.randomUUID()
+  const redisKey = `session:${sessionId}`
+  
+  await redisClient.set(redisKey, JSON.stringify({ 
+    userId: user._id.toString(),
+    rootDirId: user.rootDirId,
+   })
+);
+  const sessionExpiry = 60*1000*60*24*7
+  await redisClient.expire(redisKey, sessionExpiry /1000)
+
+  res.cookie("sid", sessionId, {
     httpOnly: true,
     signed: true,
     maxAge: 60 * 1000 * 60 * 24 * 7,
@@ -91,6 +104,7 @@ export const login = async (req, res, next) => {
 };
 
 export const getCurrentUser = (req, res) => {
+  const user = User.findById(req.user._id).lean()
   res.status(200).json({
     name: req.user.name,
     email: req.user.email,
@@ -100,15 +114,28 @@ export const getCurrentUser = (req, res) => {
 
 export const logout = async (req, res) => {
   const { sid } = req.signedCookies;
-  await Session.findByIdAndDelete(sid);
+  await redisClient.del(`session:${sid}`)
   res.clearCookie("sid");
   res.status(204).end();
 };
 
 export const logoutAllDevices = async (req, res) => {
   const { sid } = req.signedCookies;
-  const session = await Session.findById(sid);
-  await Session.deleteMany({ userId: session.userId });
+
+  const sessionData = await redisClient.get(`session:${sid}`);
+  const session = JSON.parse(sessionData);
+
+  const keys = await redisClient.keys("session:*");
+
+  for (const key of keys) {
+    const data = await redisClient.get(key);
+    const parsed = JSON.parse(data);
+
+    if (parsed.userId === session.userId) {
+      await redisClient.del(key);
+    }
+  }
+
   res.clearCookie("sid");
   res.status(204).end();
 };
