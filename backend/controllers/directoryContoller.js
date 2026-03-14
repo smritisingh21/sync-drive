@@ -5,14 +5,13 @@ import File from "../models/fileSchema.js";
 export const getDirectory = async (req, res) => {
   const user = req.user;
   const _id = req.params.id || user.rootDirId.toString();
+  
   const directoryData = await Directory.findOne({ _id }).lean();
   if (!directoryData) {
     return res
       .status(404)
       .json({ error: "Directory not found or you do not have access to it!" });
   }
-  
-
   const files = await File.find({ parentDirId: directoryData._id }).lean();
   const directories = await Directory.find({ parentDirId: _id }).lean();
   //counting items

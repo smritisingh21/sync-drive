@@ -33,6 +33,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("login with password attempted");
 
     try {
       const response = await fetch(`${BASE_URL}/user/login`, {
