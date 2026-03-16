@@ -3,10 +3,18 @@ import User from "../models/UserSchema.js";
 import mongoose, { Types } from "mongoose";
 import Session from "../models/sessionModel.js";
 import redisClient from "../config/redis.js"
+import { z } from "zod/v4";
+import { registerSchema,loginSchema } from "../validators/authSchema.js";
 
 export const register = async (req, res, next) => {
+  const {success, data, error} = registerSchema.safeParse(req.body);
   const { name, email, password} = req.body;
 
+  if(!success){
+     return res
+        .status(400)
+        .json({ error: "Invalid input, please enter valid details" });
+  }
   const session = await mongoose.startSession();
 
   try {
@@ -61,6 +69,13 @@ export const register = async (req, res, next) => {
 };
 
 export const login = async (req, res, next) => {
+  const {success, data, error} = loginSchema.safeParse(req.body);
+
+  if(!success){
+     return res
+        .status(400)
+        .json({ error: "Invalid input, please enter valid details" });
+  }
   const { email, password } = req.body;
   const user = await User.findOne({ email });
   
@@ -73,16 +88,6 @@ export const login = async (req, res, next) => {
   if (!isPasswordValid) {
     return res.status(404).json({ error: "Invalid Credentials" });
   }
-
-  // const allSessions = await Session.find({ userId: user.id });
-
-  // if (allSessions.length >= 2) {
-  //   await allSessions[0].deleteOne();
-  // }
-
-  // const session = await Session.create({ userId: user._id });
-  // const session = await redisClient.get(`session:${sid}`)
-
 
 
 //creating session in redis

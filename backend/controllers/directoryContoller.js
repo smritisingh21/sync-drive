@@ -4,7 +4,7 @@ import File from "../models/fileSchema.js";
 
 export const getDirectory = async (req, res) => {
   const user = req.user;
-  const _id = req.params.id || user.rootDirId.toString();
+  const _id = req.params.id || user.rootDirId;
   
   const directoryData = await Directory.findOne({ _id }).lean();
   if (!directoryData) {
@@ -31,22 +31,22 @@ export const getDirectory = async (req, res) => {
 
 export const createDirectory = async (req, res, next) => {
   const user = req.user;
-
   const parentDirId = req.params.parentDirId || user.rootDirId.toString();
   const dirname = req.headers.dirname || "New Folder";
+  console.log("USER :",req.user);
   try {
     const parentDir = await Directory.findOne({
       _id: parentDirId,
-    }).lean();
+    });
 
     if (!parentDir)
       return res
         .status(404)
         .json({ message: "Parent Directory Does not exist!" });
 
-    await Directory.insertOne({
+    await Directory.create({
       name: dirname,
-      parentDirId,
+      parentDirId :parentDirId,
       userId: user._id,
     });
 
