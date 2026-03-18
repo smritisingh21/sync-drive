@@ -30,6 +30,7 @@ export const getDirectory = async (req, res) => {
 };
 
 export const createDirectory = async (req, res, next) => {
+  
   const user = req.user;
   const parentDirId = req.params.parentDirId || user.rootDirId.toString();
   const dirname = req.headers.dirname || "New Folder";
@@ -47,7 +48,7 @@ export const createDirectory = async (req, res, next) => {
     await Directory.create({
       name: dirname,
       parentDirId :parentDirId,
-      userId: user._id,
+      userId: user.id,
     });
 
     return res.status(201).json({ message: "Directory Created!" });
@@ -55,7 +56,7 @@ export const createDirectory = async (req, res, next) => {
     if (err.code === 121) {
       res
         .status(400)
-        .json({ error: "Invalid input, please enter valid details" });
+        .json({err});
     } else {
       next(err);
     }

@@ -9,7 +9,7 @@ export const uploadFile = async (req, res, next) => {
   try {
     const parentDirData = await Directory.findOne({
       _id: parentDirId,
-      userId: req.user._id,
+      userId: req.user.id,
     });
 
     // Check if parent directory exists
@@ -23,10 +23,10 @@ export const uploadFile = async (req, res, next) => {
     const extension = path.extname(filename);
 
     const insertedFile = await File.insertOne({
-      extension,
+      extension : extension,
       name: filename,
       parentDirId: parentDirData._id,
-      userId: req.user._id,
+      userId: req.user.id,
     });
 
     const fileId = insertedFile.id;
@@ -54,7 +54,7 @@ export const getFile = async (req, res) => {
   const { id } = req.params;
   const fileData = await File.findOne({
     _id: id,
-    userId: req.user._id,
+    userId: req.user.id,
   }).lean();
   // Check if file exists
   if (!fileData) {
@@ -80,7 +80,7 @@ export const renameFile = async (req, res, next) => {
   const { id } = req.params;
   const file = await File.findOne({
     _id: id,
-    userId: req.user._id,
+    userId: req.user.id,
   });
 
   // Check if file exists
@@ -103,7 +103,7 @@ export const deleteFile = async (req, res, next) => {
   const { id } = req.params;
   const file = await File.findOne({
     _id: id,
-    userId: req.user._id,
+    userId: req.user.id,
   }).select("extension");
 
   if (!file) {
