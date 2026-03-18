@@ -4,7 +4,7 @@ import File from "../models/fileSchema.js";
 
 export const getDirectory = async (req, res) => {
   const user = req.user;
-  const _id = req.params.id || user.rootDirId;
+  const _id = req.params.id || user.rootDirId.toString();
   
   const directoryData = await Directory.findOne({ _id }).lean();
   if (!directoryData) {
@@ -12,8 +12,14 @@ export const getDirectory = async (req, res) => {
       .status(404)
       .json({ error: "Directory not found or you do not have access to it!" });
   }
-  const files = await File.find({ parentDirId: directoryData._id }).lean();
-  const directories = await Directory.find({ parentDirId: _id }).lean();
+  console.log(directoryData);
+  const files = await File.find({ 
+    parentDirId: directoryData._id 
+  }).lean();
+  const directories = await Directory.find({ 
+    parentDirId: _id 
+  }).lean();
+
   //counting items
   const directoriesWithCount = await Promise.all(directories.map(async (doc) => {
     const subDirs = await Directory.countDocuments({ parentDirId: doc._id });
@@ -48,7 +54,7 @@ export const createDirectory = async (req, res, next) => {
     await Directory.create({
       name: dirname,
       parentDirId :parentDirId,
-      userId: user.id,
+      userId: user._id,
     });
 
     return res.status(201).json({ message: "Directory Created!" });
@@ -83,11 +89,10 @@ export const renameDirectory = async (req, res, next) => {
 
 export const deleteDirectory = async (req, res, next) => {
   const { id } = req.params;
-
   try {
     const directoryData = await Directory.findOne({
       _id: id,
-      userId: req.user._id,
+      userId: req.user.id,
     })
       .select("_id")
       .lean();
