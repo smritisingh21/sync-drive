@@ -14,7 +14,7 @@ function CreateDirectoryModal({newDirname,setNewDirname,onClose,onCreateDirector
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, []);
 
   return (
     /* Overlay: backdrop-blur adds that modern frosted-glass look */

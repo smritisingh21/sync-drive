@@ -54,7 +54,7 @@ export const createDirectory = async (req, res, next) => {
     await Directory.create({
       name: dirname,
       parentDirId :parentDirId,
-      userId: user._id,
+      userId: user.id,
     });
 
     return res.status(201).json({ message: "Directory Created!" });
@@ -77,7 +77,7 @@ export const renameDirectory = async (req, res, next) => {
     await Directory.findOneAndUpdate(
       {
         _id: id,
-        userId: user._id,
+        userId: user.id,
       },
       { name: newDirName }
     );
