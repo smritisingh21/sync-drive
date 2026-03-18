@@ -111,10 +111,12 @@ export const deleteFile = async (req, res, next) => {
   }
 
   try {
-    await rm(`./storage/${id}${file.extension}`);
+    const filePath = `./storage/${id}${file.extension}`
+    await rm(filePath,{ force:true});
     await file.deleteOne();
     return res.status(200).json({ message: "File Deleted Successfully" });
   } catch (err) {
     next(err);
   }
+
 };

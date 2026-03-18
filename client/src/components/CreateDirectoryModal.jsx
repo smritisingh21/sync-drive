@@ -17,12 +17,10 @@ function CreateDirectoryModal({newDirname,setNewDirname,onClose,onCreateDirector
   }, []);
 
   return (
-    /* Overlay: backdrop-blur adds that modern frosted-glass look */
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" 
       onClick={onClose}
     >
-      {/* Modal Content Container */}
       <div 
         className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 shadow-2xl transition-all animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
