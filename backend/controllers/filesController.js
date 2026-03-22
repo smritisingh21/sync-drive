@@ -17,7 +17,6 @@ export const uploadFile = async (req, res, next) => {
     }
 
     const filenameHeader = req.headers.filename;
-    const filesize= req.headers.filesize;
     
     const filename = filenameHeader ? decodeURIComponent(filenameHeader) : "untitled";
     const extension = path.extname(filename);
@@ -25,25 +24,32 @@ export const uploadFile = async (req, res, next) => {
     const insertedFile = await File.insertOne({
       extension : extension,
       name: filename,
-      size:filesize,
+      size: 0, // Will be updated with actual size after upload
       parentDirId: parentDirData._id,
       userId: req.user.id,
     });
 
-    const fileId = insertedFile.id;
+    const fileId = insertedFile.insertedId;
 
     const fullFileName = `${fileId}${extension}`;
 
     const writeStream = createWriteStream(`./storage/${fullFileName}`);
+    let actualSize = 0;
+
+    req.on('data', (chunk) => {
+      actualSize += chunk.length;
+    });
+
     req.pipe(writeStream);
 
     req.on("end", async () => {
+      await File.updateOne({ _id: fileId }, { size: actualSize });
       return res.status(201).json({ message: "File Uploaded" });
     });
 
     req.on("error", async () => {
-      await File.deleteOne({ _id: insertedFile.insertedId });
-      return res.status(404).json({ message: "Could not Upload File" });
+      await File.deleteOne({ _id: fileId });
+      return res.status(500).json({ message: "Could not Upload File" });
     });
   } catch (err) {
     console.log(err);
