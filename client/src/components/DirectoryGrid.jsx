@@ -106,11 +106,19 @@ export default function DirectoryGrid({
               
               <div className="flex items-center justify-center gap-2 mt-1">
                 {/* Number of Items (Folder only) */}
-                {item.isDirectory && (
+                {item.isDirectory ? (
                   <span className="text-[10px] text-gray-500 font-bold px-1.5 py-0.5 rounded">
                     {item.itemsCount || 0} items
                   </span>
-                )}
+                ):
+                 <span className="text-[10px] text-gray-500 font-bold px-1.5 py-0.5 rounded">
+                    {item.size < 1024 * 1024
+                       ? (item.size / 1024).toFixed(2) + " KB"
+                       : (item.size / (1024 * 1024)).toFixed(2) + " MB"
+                       
+                       } 
+                  </span>
+                }
 
               </div>
             </div>
