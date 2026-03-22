@@ -93,18 +93,29 @@ function DirectoryItem({
         ) : ("")
         }
       </div>
-
-      <div className="col-span-4 md:col-span-3 flex justify-end items-center">
+      <div className="col-span-4 md:col-span-3 flex justify-end items-center gap-3">
+        <div className="text-xs text-gray-400">
+           {
+            item.isDirectory? "" :
+            item.size < 1024 * 1024
+               ? (item.size / 1024).toFixed(2) + " KB"
+              : (item.size / (1024 * 1024)).toFixed(2) + " MB"
+          
+           }
+        </div>
         <div
-          className="p-2 rounded-full text-slate-400 hover:bg-white hover:text-indigo-600 hover:shadow-sm transition-all"
+          className="p-2 rounded-full text-slate-400  transition-all"
           onClick={(e) => {
             e.stopPropagation();
             handleContextMenu(e, item.id);
           }}
         >
+         
           <div className="flex items-center justify-center text-xs gap-3">
-          {item.itemsCount || 0 } items
-          <BsThreeDotsVertical />
+          {
+            item.isDirectory? `${item.itemsCount || 0 } items` : ""
+          }
+          <BsThreeDotsVertical className=" hover:bg-white hover:text-indigo-600 hover:shadow-sm size-4" />
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import DirectoryHeader from "./components/DirectoryHeader";
 import CreateDirectoryModal from "./components/CreateDirectoryModal";
 import RenameModal from "./components/RenameModal";
+import ImagePreview from "./components/ImagePreview";
 import DirectoryList from "./components/DirectoryList";
 import DirectoryGrid from "./components/DirectoryGrid";
 
@@ -123,9 +124,10 @@ function handleRowClick(type, id) {
   function handleFileSelect(e) {
     const selectedFiles = Array.from(e.target.files);
     if (selectedFiles.length === 0) return;
+    console.log(selectedFiles);
     const newItems = selectedFiles.map((file) => {
       const tempId = `temp-${Date.now()}-${Math.random()}`;
-      return { file, name: file.name, id: tempId, isUploading: false };
+      return { file, name: file.name, size:file.size, id: tempId, isUploading: false };
     });
     setFilesList((prev) => [...newItems, ...prev]);
     newItems.forEach((item) => { setProgressMap((prev) => ({ ...prev, [item.id]: 0 })); });
@@ -152,6 +154,7 @@ function handleRowClick(type, id) {
 
     // Encode the filename so non-ISO-8859-1 characters (e.g. emoji, accents) don't break setRequestHeader
     xhr.setRequestHeader("filename", encodeURIComponent(currentItem.name));
+    xhr.setRequestHeader("filesize", currentItem.size);
     
     xhr.upload.addEventListener("progress", (evt) => {
       if (evt.lengthComputable) {
@@ -252,7 +255,9 @@ function handleRowClick(type, id) {
   ];
   // 1. Filter items based on search query
 const filteredItems = combinedItems.filter((item) =>
-  item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  item.name
+  .toLowerCase()
+  .includes(searchQuery.toLowerCase())
 );
 
 // 2. Define the props once to keep the JSX clean
@@ -394,15 +399,15 @@ const listProps = {
           onRenameSubmit={handleRenameSubmit}
         />
       )}
-      {previewIndex !== null && (
-  <ImagePreview 
+  {previewIndex !== null && (
+   <ImagePreview 
     images={previewImages}
     currentIndex={previewIndex}
     setCurrentIndex={setPreviewIndex}
     onClose={() => setPreviewIndex(null)}
     BASE_URL={BASE_URL}
   />
-)}
+    )}
     </div>
 
     

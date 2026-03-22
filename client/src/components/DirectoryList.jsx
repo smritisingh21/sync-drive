@@ -29,6 +29,7 @@ function DirectoryList({
           return (
             <DirectoryItem
               key={item.id}
+              size={item.size}
               item={item}
               handleRowClick={handleRowClick}
               activeContextMenu={activeContextMenu}

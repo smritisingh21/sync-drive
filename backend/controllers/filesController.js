@@ -12,12 +12,12 @@ export const uploadFile = async (req, res, next) => {
       userId: req.user.id,
     });
 
-    // Check if parent directory exists
     if (!parentDirData) {
       return res.status(404).json({ error: "Parent directory not found!" });
     }
 
     const filenameHeader = req.headers.filename;
+    const filesize= req.headers.filesize;
     
     const filename = filenameHeader ? decodeURIComponent(filenameHeader) : "untitled";
     const extension = path.extname(filename);
@@ -25,6 +25,7 @@ export const uploadFile = async (req, res, next) => {
     const insertedFile = await File.insertOne({
       extension : extension,
       name: filename,
+      size:filesize,
       parentDirId: parentDirData._id,
       userId: req.user.id,
     });

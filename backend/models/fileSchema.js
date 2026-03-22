@@ -11,6 +11,10 @@ const fileSchema = new Schema(
       type: String,
       required: true,
     },
+    size: {
+      type: Number,
+      required: true,
+    },
     userId: {
       type: Schema.Types.ObjectId,
       required: true,
