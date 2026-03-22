@@ -18,6 +18,12 @@ export const uploadFile = async (req, res, next) => {
 
     const filenameHeader = req.headers.filename;
     const filesize= req.headers.filesize;
+
+    if(filesize > 5* 1024 * 1024) {
+      res.destroy()
+      // res.header('connection', 'close')
+      // return res.end();
+    }
     
     const filename = filenameHeader ? decodeURIComponent(filenameHeader) : "untitled";
     const extension = path.extname(filename);
