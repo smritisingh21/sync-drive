@@ -19,10 +19,9 @@ export const uploadFile = async (req, res, next) => {
     const filenameHeader = req.headers.filename;
     const filesize= req.headers.filesize;
 
-    if(filesize > 5* 1024 * 1024) {
-      res.destroy()
-      // res.header('connection', 'close')
-      // return res.end();
+    if (filesize > 5 * 1024 * 1024){
+      console.log('File too large');
+      res.detroy();
     }
     
     const filename = filenameHeader ? decodeURIComponent(filenameHeader) : "untitled";
@@ -39,11 +38,30 @@ export const uploadFile = async (req, res, next) => {
     const fileId = insertedFile.id;
 
     const fullFileName = `${fileId}${extension}`;
+    const filePath = `./storage/${fullFileName}`
 
-    const writeStream = createWriteStream(`./storage/${fullFileName}`);
+    const writeStream = createWriteStream(filePath);
     req.pipe(writeStream);
 
+    //validating filesize in backend
+    let totalFileSize = 0;
+    let aborted; // handling extra data in queue (that tries to delete already deleted file and throws error)
+    req.on("data", async (chunk) =>{
+        if (aborted) return;
+        totalFileSize += chunk.length;
+        if(totalFileSize > filesize){
+          aborted = true
+          writeStream.close()
+          await insertedFile.deleteOne()
+          await rm(filePath)
+          res.destroy()
+        }
+        writeStream.write(chunk)
+    })
+
     req.on("end", async () => {
+      console.log({filesize});
+      console.log({totalFileSize});
       return res.status(201).json({ message: "File Uploaded" });
     });
 
