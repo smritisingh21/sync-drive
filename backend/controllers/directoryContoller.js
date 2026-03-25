@@ -12,7 +12,6 @@ export const getDirectory = async (req, res) => {
       .status(404)
       .json({ error: "Directory not found or you do not have access to it!" });
   }
-  console.log(directoryData);
   const files = await File.find({ 
     parentDirId: directoryData._id 
   }).lean();

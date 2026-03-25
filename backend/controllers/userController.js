@@ -123,7 +123,6 @@ export const login = async (req, res, next) => {
 export const getCurrentUser = async (req, res) => {
   const userId = req.user.id;
   const user = await User.findById(userId);
-  console.log(user);
 
   res.status(200).json({
     name: user.name,

@@ -85,7 +85,7 @@ function handleRowClick(type, id) {
   }
 
   async function getDirectoryItems() {
-    setErrorMessage("");
+    setErrorMessage("");``
     try {
       const response = await fetch(`${BASE_URL}/directory/${dirId || ""}`, {
         credentials: "include",

@@ -3,6 +3,7 @@ import { rm } from "fs/promises";
 import path from "path";
 import Directory from "../models/directorySchema.js";
 import File from "../models/fileSchema.js";
+import mongoose from "mongoose";
 
 export const uploadFile = async (req, res, next) => {
   const parentDirId = req.params.parentDirId || req.user.rootDirId;
@@ -27,7 +28,7 @@ export const uploadFile = async (req, res, next) => {
     const filename = filenameHeader ? decodeURIComponent(filenameHeader) : "untitled";
     const extension = path.extname(filename);
 
-    const insertedFile = await File.insertOne({
+    const insertedFile = await File.create({
       extension : extension,
       name: filename,
       size:filesize,
@@ -81,19 +82,17 @@ export const getFile = async (req, res) => {
     _id: id,
     userId: req.user.id,
   }).lean();
-  // Check if file exists
+
   if (!fileData) {
     return res.status(404).json({ error: "File not found!" });
   }
 
-  // If "download" is requested, set the appropriate headers
   const filePath = `${process.cwd()}/storage/${id}${fileData.extension}`;
 
   if (req.query.action === "download") {
     return res.download(filePath, fileData.name);
   }
 
-  // Send file
   return res.sendFile(filePath, (err) => {
     if (!res.headersSent && err) {
       return res.status(404).json({ error: "File not found!" });
@@ -144,4 +143,32 @@ export const deleteFile = async (req, res, next) => {
     next(err);
   }
 
+};
+
+export const getAllFileSize = async (req, res) => {
+
+  const userId = new mongoose.Types.ObjectId(req.user.id);
+  try {
+    const result = await File.aggregate([
+      {
+        $match: { userId: userId } 
+      },
+      {
+        $group: {
+          _id: null,
+          totalSize: { $sum: "$size" }
+        }
+      }
+    ]);
+
+    const totalSize = result[0]?.totalSize || 0;
+    console.log(totalSize);
+    return res.status(200).json({
+       usedStorage : totalSize 
+      });
+
+  } catch (err) {
+    console.log("Aggregation error:", err);
+    return res.status(500).json({ message: "Could not fetch total size" });
+  }
 };

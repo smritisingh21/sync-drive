@@ -21,10 +21,9 @@ function DirectoryHeader({
   const [loggedIn, setLoggedIn] = useState(false);
   const [userName, setUserName] = useState("Guest User");
   const [userEmail, setUserEmail] = useState("guest@example.com");
-  // const [maxBytes, setMaxbytes] = useState(107371824);
+  const [usedStorage, setUsedStorage] = useState(0);
 
-  // const usedGB = 0;
-  // const totalGB = maxBytes/ (1024 ** 3)
+  const totalGB = 2147483648 / (1024 ** 3);
 
   const userMenuRef = useRef(null);
   const navigate = useNavigate();
@@ -38,11 +37,9 @@ function DirectoryHeader({
 
         if (response.ok) {
           const user = await response.json();
-          console.log(user);
           setLoggedIn(true);
           setUserName(user.name);
           setUserEmail(user.email);
-          // setMaxbytes(user.maxStorageInBytes);
         } else if (response.status === 401) {
           setLoggedIn(false);
           setUserName("Guest User");
@@ -51,9 +48,29 @@ function DirectoryHeader({
       } catch (err) { console.error("Error fetching user info:", err); }
     }
     fetchUser();
+    fetchStorage();
   }, [BASE_URL]);
 
   const handleUserIconClick = () => setShowUserMenu((prev) => !prev);
+
+  const fetchStorage = async () =>{
+   try{
+     const response = await fetch(`${BASE_URL}/file/getStorage`, {
+      method: "GET",
+      credentials: "include"
+     });
+
+    if(response.ok){
+      const data = await response.json()
+      const used = (data.usedStorage/ (1024 ** 3)).toFixed(3)
+      const percentage = (usedStorage / totalGB) * 100;
+      setUsedStorage(used);
+    }
+   }catch(err){
+    console.log("Could not get filesize");
+   }
+  }
+
 
   const handleLogout = async () => {
     try {
@@ -66,8 +83,14 @@ function DirectoryHeader({
         setUserEmail("guest@example.com");
         navigate("/login");
       }
-    } catch (err) { console.error("Logout error:", err); } finally { setShowUserMenu(false); }
+    } catch (err) { 
+      console.error("Logout error:", err); } 
+      finally {
+        setShowUserMenu(false); 
+      }
   };
+
+
   const handleLogoutAll = async () => {
     try {
       const response = await fetch(`${BASE_URL}/user/logoutAllDevices`, { 
@@ -146,6 +169,13 @@ function DirectoryHeader({
                   <div className="px-4 py-4 bg-slate-50/50">
                     <p className="text-sm font-semibold text-slate-900 truncate">{userName}</p>
                     <p className="text-xs text-slate-500 truncate">{userEmail}</p>
+                    <div className=" mt-6 flex w-full bg-blue-400 h-2 rounded-xl">
+                      <div className={`h-2  bg-blue-800 rounded-xl`} 
+                      style={{ width: `${(usedStorage / totalGB) * 100}%` }}></div>
+                    </div>
+                    <p className="text-sm font-semibold text-slate-700 truncate mt-2 ">
+                      {usedStorage} GB used out of {totalGB.toFixed(2)} GB
+                    </p>
                   </div>
                   <div className="border-t border-slate-100" />
                   <button
