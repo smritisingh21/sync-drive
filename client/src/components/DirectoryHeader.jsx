@@ -21,6 +21,10 @@ function DirectoryHeader({
   const [loggedIn, setLoggedIn] = useState(false);
   const [userName, setUserName] = useState("Guest User");
   const [userEmail, setUserEmail] = useState("guest@example.com");
+  // const [maxBytes, setMaxbytes] = useState(107371824);
+
+  // const usedGB = 0;
+  // const totalGB = maxBytes/ (1024 ** 3)
 
   const userMenuRef = useRef(null);
   const navigate = useNavigate();
@@ -28,16 +32,21 @@ function DirectoryHeader({
   useEffect(() => {
     async function fetchUser() {
       try {
-        const response = await fetch(`${BASE_URL}/user`, { credentials: "include" });
+        const response = await fetch(`${BASE_URL}/user`, { 
+          credentials: "include"
+         });
+
         if (response.ok) {
-          const data = await response.json();
-          setUserName(data.name);
-          setUserEmail(data.email);
+          const user = await response.json();
+          console.log(user);
           setLoggedIn(true);
+          setUserName(user.name);
+          setUserEmail(user.email);
+          // setMaxbytes(user.maxStorageInBytes);
         } else if (response.status === 401) {
+          setLoggedIn(false);
           setUserName("Guest User");
           setUserEmail("guest@example.com");
-          setLoggedIn(false);
         }
       } catch (err) { console.error("Error fetching user info:", err); }
     }

@@ -22,7 +22,11 @@ export default async function checkAuth(req, res, next) {
 
   const session = JSON.parse(sessionData);   // ← important
   
-  req.user = {id : session.userId , rootDirId : session.rootDirId};
+  req.user = {
+    id : session.userId ,
+    rootDirId : session.rootDirId
+  };
+  
   next();
 }
 

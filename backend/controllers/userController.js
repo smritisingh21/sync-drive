@@ -1,9 +1,7 @@
 import Directory from "../models/directorySchema.js";
 import User from "../models/UserSchema.js";
 import mongoose, { Types } from "mongoose";
-import Session from "../models/sessionModel.js";
 import redisClient from "../config/redis.js"
-import { z } from "zod/v4";
 import { registerSchema,loginSchema } from "../validators/authSchema.js";
 
 export const register = async (req, res, next) => {
@@ -15,6 +13,7 @@ export const register = async (req, res, next) => {
         .status(400)
         .json({ error: "Invalid input, please enter valid details" });
   }
+
   const session = await mongoose.startSession();
 
   try {
@@ -76,6 +75,7 @@ export const login = async (req, res, next) => {
         .status(400)
         .json({ error: "Invalid input, please enter valid details" });
   }
+
   const { email, password } = req.body;
   const user = await User.findOne({ email });
   
@@ -120,12 +120,15 @@ export const login = async (req, res, next) => {
   res.json({ message: "logged in" });
 };
 
-export const getCurrentUser = (req, res) => {
-  const user = User.findById(req.user._id).lean()
+export const getCurrentUser = async (req, res) => {
+  const userId = req.user.id;
+  const user = await User.findById(userId);
+  console.log(user);
+
   res.status(200).json({
-    name: req.user.name,
-    email: req.user.email,
-    picture: req.user.picture,
+    name: user.name,
+    email: user.email,
+    picture: user.picture,
   });
 };
 
