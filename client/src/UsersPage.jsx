@@ -3,6 +3,7 @@ import { User, Shield, Ghost, LogOut, Loader2, MoreVertical, Search, Filter } fr
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
   const logoutUser = (userId) => {
@@ -27,6 +28,9 @@ export default function UsersPage() {
             ...u,
             role: u.role || (u.email.includes('admin') ? 'Admin' : 'User')
           })));
+        }
+        if(response.status == 403){
+          setError("You are not authorised to view users details.Please contact your manager")
         }
       } catch (err) {
         console.error("Fetch error:", err);
@@ -74,7 +78,7 @@ export default function UsersPage() {
             </button>
           </div>
         </div>
-
+       
         {/* Main Content Area / Table */}
         <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
           <div className="overflow-x-auto">
@@ -149,20 +153,15 @@ export default function UsersPage() {
                   })
                 )}
               </tbody>
+
             </table>
           </div>
-          
-          {/* Footer of the Card */}
-          <div className="bg-slate-50/50 p-6 border-t border-slate-100 flex justify-between items-center">
-             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-               End of Registry — {users.length} Identities
-             </span>
-             <div className="flex gap-2">
-                <button className="px-4 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors">Previous</button>
-                <button className="px-4 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors">Next</button>
-             </div>
-          </div>
+           <div className="text-red-600  font-sans font-semibold  h-10 mb-10 rounded-xl w-auto flex justify-center items-center p-10 ">
+          <p>{error}</p>
         </div>
+
+        </div>
+        
       </div>
     </div>
   );

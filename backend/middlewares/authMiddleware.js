@@ -1,6 +1,4 @@
-import { ObjectId } from "mongodb";
 import User from "../models/UserSchema.js";
-import Session from "../models/sessionModel.js";
 import redisClient from "../config/redis.js";
 
 export default async function checkAuth(req, res, next) {
@@ -20,11 +18,14 @@ export default async function checkAuth(req, res, next) {
     return res.status(401).json({ error: "Session invalidated. Please login again." });
   }
 
-  const session = JSON.parse(sessionData);   // ← important
+  const session = JSON.parse(sessionData); 
   
+  const user = await User.findById(session.userId);
+
   req.user = {
     id : session.userId ,
-    rootDirId : session.rootDirId
+    rootDirId : session.rootDirId,
+    role: user?.role || 'User'
   };
   
   next();
