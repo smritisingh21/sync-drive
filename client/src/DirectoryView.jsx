@@ -45,23 +45,19 @@ function handleRowClick(type, id) {
   if (type === "directory") {
     navigate(`/directory/${id}`);
   } else {
-    // 1. Find the clicked file
     const clickedFile = combinedItems.find(f => f.id === id);
     if (!clickedFile) return;
 
-    // 2. Check if it's an image
     const isImg = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(
       clickedFile.name.split('.').pop().toLowerCase()
     );
 
     if (isImg) {
-      // 3. Create a list of ONLY images from the current folder
       const allImagesInFolder = combinedItems.filter(f => {
         const ext = f.name.split('.').pop().toLowerCase();
         return !f.isDirectory && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext);
       });
 
-      // 4. Find where our clicked image sits in that specific list
       const index = allImagesInFolder.findIndex(img => img.id === id);
 
       setPreviewImages(allImagesInFolder);

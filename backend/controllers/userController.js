@@ -2,6 +2,7 @@ import Directory from "../models/directorySchema.js";
 import User from "../models/UserSchema.js";
 import mongoose, { Types } from "mongoose";
 import redisClient from "../config/redis.js"
+import Session from "../models/sessionModel.js";
 import { registerSchema,loginSchema } from "../validators/authSchema.js";
 
 export const register = async (req, res, next) => {
@@ -118,6 +119,26 @@ export const login = async (req, res, next) => {
     maxAge: 60 * 1000 * 60 * 24 * 7,
   });
   res.json({ message: "logged in" });
+};
+
+
+export const getAllUsers = async (req, res, next) => {
+  const allUsers = await User.find().lean();
+  console.log(allUsers);
+
+  const transformedUsers = await Promise.all(
+    allUsers.map(async ({ _id, name, email }) => {
+      const sessionCount = await redisClient.lLen(`user_sessions:${_id}`);
+      return {
+        id: _id,
+        name,
+        email,
+        isLoggedIn: sessionCount > 0,
+      };
+    })
+  );
+  console.log(transformedUsers);
+  res.status(200).json(transformedUsers); 
 };
 
 export const getCurrentUser = async (req, res) => {

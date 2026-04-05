@@ -28,6 +28,12 @@ const userSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Directory",
     },
+    role:{
+      type: String,
+      enum:['User' , 'Manager', 'Admin'],
+      default:'User'
+
+    },
     picture: {
       type: String,
       default:
