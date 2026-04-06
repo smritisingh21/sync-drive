@@ -286,7 +286,7 @@ const listProps = {
         )}
 
         {/* Dynamic Header Component */}
-        <div className="mb-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+        <div className="mb-8 p-5 border-b-2">
           <DirectoryHeader
             directoryName={directoryName}
             onCreateFolderClick={() => setShowCreateDirModal(true)}

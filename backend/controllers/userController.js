@@ -124,15 +124,15 @@ export const login = async (req, res, next) => {
 
 export const getAllUsers = async (req, res, next) => {
   const allUsers = await User.find().lean();
-  console.log(allUsers);
 
   const transformedUsers = await Promise.all(
-    allUsers.map(async ({ _id, name, email }) => {
+    allUsers.map(async ({ _id, name, email ,role}) => {
       const sessionCount = await redisClient.lLen(`user_sessions:${_id}`);
       return {
         id: _id,
         name,
         email,
+        role,
         isLoggedIn: sessionCount > 0,
       };
     })
@@ -149,6 +149,7 @@ export const getCurrentUser = async (req, res) => {
     name: user.name,
     email: user.email,
     picture: user.picture,
+    role:user.role
   });
 };
 

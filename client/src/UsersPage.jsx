@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { User, Shield, Ghost, LogOut, Loader2, MoreVertical, Search, Filter } from "lucide-react";
-
+import { useNavigate } from "react-router";
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
+  const[currentUser, setCurrentUser] = useState("");
   const [loading, setLoading] = useState(true);
+
+  const navigate = useNavigate();
 
   const logoutUser = (userId) => {
     setUsers((prevUsers) =>
@@ -13,6 +16,29 @@ export default function UsersPage() {
       )
     );
   };
+
+  async function fetchCurrentUser (){
+    try {
+        const BASE_URL = "http://localhost:8000";
+        const response = await fetch(`${BASE_URL}/user`, { 
+          credentials: "include"
+         });
+        
+        if (response.ok) {
+          const user = await response.json();
+          setCurrentUser(user)
+        }
+        if(response.status == 403){
+          setError("Could not fetch user")
+          navigate("/")
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+
+  }
 
   useEffect(() => {
     async function fetchUsers() {
@@ -26,7 +52,6 @@ export default function UsersPage() {
           const data = await response.json();
           setUsers(data.map(u => ({
             ...u,
-            role: u.role || (u.email.includes('admin') ? 'Admin' : 'User')
           })));
         }
         if(response.status == 403){
@@ -39,6 +64,7 @@ export default function UsersPage() {
       }
     }
     fetchUsers();
+    fetchCurrentUser();
   }, []);
 
   const getRoleStyle = (role) => {
@@ -54,7 +80,7 @@ export default function UsersPage() {
       <div className="max-w-6xl mx-auto">
         
         {/* Top Header Section */}
-        <div className="bg-white rounded-[1.5rem] border border-slate-200 p-6 mb-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm">
+        <div className="p-6 mb-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm">
           <div className="flex items-center gap-4">
              <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200">
                 <User size={24} />
@@ -88,7 +114,8 @@ export default function UsersPage() {
                   <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-400">Identity</th>
                   <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-400">Classification</th>
                   <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-400">Status</th>
-                  <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-400 text-right">Settings</th>
+                  <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-400 text-right">Logout</th>
+                  <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-400 text-right">Delete</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -134,20 +161,28 @@ export default function UsersPage() {
                             <button
                               onClick={() => logoutUser(user.id)}
                               disabled={!user.isLoggedIn}
-                              className={`p-2.5 rounded-xl transition-all ${
-                                user.isLoggedIn 
-                                ? 'bg-rose-50 text-rose-500 hover:bg-rose-100' 
-                                : 'text-slate-200 cursor-not-allowed'
+                              className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${user.isLoggedIn ?
+                                 'bg-rose-50 text-rose-500 hover:bg-rose-100' : 'text-slate-200 cursor-not-allowed'
                               }`}
                               title="Terminate Session"
-                            >
+                            >Logout
                               <LogOut size={18} />
                             </button>
-                            <button className="p-2.5 text-slate-400 hover:text-slate-900 transition-colors">
+                            {/* <button className="p-2.5 text-slate-400 hover:text-slate-900 transition-colors">
                                <MoreVertical size={18} />
-                            </button>
+                            </button> */}
                           </div>
                         </td>
+
+                        {currentUser.role == "Admin" && ( //only admins can delete user
+                        <td>
+                          <div className="flex items-center justify-end p-3">
+                           <button className="p-2.5 text-white bg-red-500  hover:bg-rose-300 rounded-md transition-colors">
+                            Delete
+                          </button>
+                          </div>
+                        </td>
+                        )}
                       </tr>
                     );
                   })
