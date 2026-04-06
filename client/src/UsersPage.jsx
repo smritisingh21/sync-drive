@@ -27,7 +27,22 @@ export default function UsersPage() {
       console.error("Logout error:", err); } 
      
   };
-
+  const deleteUser = async (userId) => {
+    const shouldDelete = confirm('This user will be deleted. Continue?')
+    if(!shouldDelete) return;
+    try {
+      console.log(userId);
+      const response = await fetch(`${BASE_URL}/user/${userId}`, {
+         method: "DELETE",
+         credentials: "include" });
+      if (response.ok) {
+        console.log("User Deleted");
+        fetchUsers();
+      }
+    } catch (err) { 
+      console.error("Logout error:", err); } 
+     
+  };
 
   async function fetchCurrentUser (){
     try {
@@ -193,7 +208,7 @@ export default function UsersPage() {
                           <div className="flex items-center justify-end p-3">
 
                            <button
-                          //  disabled={}
+                           onClick={() => deleteUser(user.id)}
                            className="p-2.5 text-white bg-red-500  hover:bg-rose-300 rounded-md transition-colors">
                             Delete
                           </button>
