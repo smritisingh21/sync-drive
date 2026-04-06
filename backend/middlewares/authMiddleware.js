@@ -31,3 +31,16 @@ export default async function checkAuth(req, res, next) {
   next();
 }
 
+
+
+export const checkRegularUser = (req, res, next ) =>{
+  if (req.user.role !== "User" ) return next();
+  console.log("Only admins and managers can access users");
+  res.status(403).json({ err: "Only admins and managers can access users" });
+};
+
+export const checkAdmin = (req, res, next) => {
+  if (req.user.role === "Admin") return next();
+  console.log("Only admins can perform this action");
+  res.status(403).json({ err: "Only admins can perform this action" });
+};

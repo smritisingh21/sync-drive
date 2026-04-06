@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { User, Shield, Ghost, LogOut, Loader2, MoreVertical, Search, Filter } from "lucide-react";
+import { BsArrowLeftSquare } from "react-icons/bs";
 import { useNavigate } from "react-router";
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -8,25 +9,37 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
-
-  const logoutUser = (userId) => {
-    setUsers((prevUsers) =>
-      prevUsers.map((user) =>
-        user.id === userId ? { ...user, isLoggedIn: false } : user
-      )
-    );
+ const BASE_URL = "http://localhost:8000";
+ 
+  const logoutUser = async (userId) => {
+    const logoutConfirm = confirm('This user will be logged out. Continue?')
+    if(!logoutConfirm) return;
+    try {
+      console.log(userId);
+      const response = await fetch(`${BASE_URL}/user/${userId}/logout`, {
+         method: "POST",
+         credentials: "include" });
+      if (response.ok) {
+        console.log("Logged out user.");
+        fetchUsers();
+      }
+    } catch (err) { 
+      console.error("Logout error:", err); } 
+     
   };
+
 
   async function fetchCurrentUser (){
     try {
-        const BASE_URL = "http://localhost:8000";
+       
         const response = await fetch(`${BASE_URL}/user`, { 
           credentials: "include"
          });
         
         if (response.ok) {
           const user = await response.json();
-          setCurrentUser(user)
+          setCurrentUser(user);
+        
         }
         if(response.status == 403){
           setError("Could not fetch user")
@@ -40,29 +53,31 @@ export default function UsersPage() {
 
   }
 
-  useEffect(() => {
-    async function fetchUsers() {
-      try {
-        const BASE_URL = "http://localhost:8000";
-        const response = await fetch(`${BASE_URL}/users`, { 
-          credentials: "include"
-         });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setUsers(data.map(u => ({
-            ...u,
-          })));
-        }
-        if(response.status == 403){
-          setError("You are not authorised to view users details.Please contact your manager")
-        }
-      } catch (err) {
-        console.error("Fetch error:", err);
-      } finally {
-        setLoading(false);
+  async function fetchUsers() {
+    try {
+      const BASE_URL = "http://localhost:8000";
+      const response = await fetch(`${BASE_URL}/users`, { 
+        credentials: "include"
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.map(u => ({
+          ...u,
+        })));
       }
+      if(response.status == 403){
+        setError("You are not authorised to view users details.Please contact your manager")
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
     }
+  }
+
+
+  useEffect(() => {
     fetchUsers();
     fetchCurrentUser();
   }, []);
@@ -82,6 +97,7 @@ export default function UsersPage() {
         {/* Top Header Section */}
         <div className="p-6 mb-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm">
           <div className="flex items-center gap-4">
+                <BsArrowLeftSquare size={30} className="cursor-pointer" onClick={() => navigate("/")}/>
              <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200">
                 <User size={24} />
              </div>
@@ -156,28 +172,29 @@ export default function UsersPage() {
                              </span>
                           </div>
                         </td>
-                        <td className="p-6 text-right">
+                          <td className="p-6 text-right">
                           <div className="flex justify-end gap-2">
                             <button
                               onClick={() => logoutUser(user.id)}
-                              disabled={!user.isLoggedIn}
-                              className={`p-2.5 rounded-xl transition-all flex items-center gap-2 ${user.isLoggedIn ?
+                              disabled={!user.isLoggedIn || (currentUser.role !== "Admin" && currentUser.role !== "Manager")}
+                              className={`p-2.5 rounded-xl cursor-pointer transition-all flex items-center gap-2 ${user.isLoggedIn ?
                                  'bg-rose-50 text-rose-500 hover:bg-rose-100' : 'text-slate-200 cursor-not-allowed'
                               }`}
                               title="Terminate Session"
                             >Logout
                               <LogOut size={18} />
                             </button>
-                            {/* <button className="p-2.5 text-slate-400 hover:text-slate-900 transition-colors">
-                               <MoreVertical size={18} />
-                            </button> */}
+                          
                           </div>
                         </td>
-
-                        {currentUser.role == "Admin" && ( //only admins can delete user
+                        
+                        {currentUser.role == "Admin" &&  ( //only admins can delete user
                         <td>
                           <div className="flex items-center justify-end p-3">
-                           <button className="p-2.5 text-white bg-red-500  hover:bg-rose-300 rounded-md transition-colors">
+
+                           <button
+                          //  disabled={}
+                           className="p-2.5 text-white bg-red-500  hover:bg-rose-300 rounded-md transition-colors">
                             Delete
                           </button>
                           </div>

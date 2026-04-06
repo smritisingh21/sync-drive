@@ -175,6 +175,22 @@ export const logout = async (req, res) => {
   res.status(204).end();
 };
 
+export const logoutById = async (req, res, next) =>{
+    const {userId} = req.params;
+    console.log(userId);
+   try{
+      const sessionIds = await redisClient.lRange(`user_sessions:${userId}`, 0, -1);
+
+      for (const id of sessionIds) {
+        await redisClient.del(`session:${id}`);
+      }
+      await redisClient.del(`user_sessions:${userId}`);
+      res.status(204).end();
+    }  catch(err){
+    next(err)
+   }
+    
+}
 
 export const logoutAllDevices = async (req, res) => {
   const { sid } = req.signedCookies;
@@ -200,6 +216,22 @@ export const logoutAllDevices = async (req, res) => {
 
   res.clearCookie("sid");
   res.status(204).end();
+};
+
+export const deleteUser = async (req, res, next) => {
+  const { userId } = req.params;
+
+  if (req.user.id === userId) {
+    return res.status(403).json({ err: "You cannot delete yourself." });
+  }
+
+  try {
+    await redisClient.del(`user_sessions:${userId}`);
+    await User.findByIdAndDelete(userId);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
 };
 
 

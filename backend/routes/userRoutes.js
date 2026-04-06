@@ -1,11 +1,14 @@
 import express from "express";
 import checkAuth from "../middlewares/authMiddleware.js";
+import { checkRegularUser, checkAdmin } from "../middlewares/authMiddleware.js";
 import {
   getAllUsers,
   getCurrentUser,
   login,
   logout,
   logoutAllDevices,
+  logoutById,
+  deleteUser,
   register,
 } from "../controllers/userController.js";
 
@@ -16,13 +19,11 @@ router.post("/user/register", register);
 router.post("/user/login", login);
 router.post("/user/logout", logout);
 router.post("/user/logoutAllDevices", logoutAllDevices);
-router.get('/users',
-  checkAuth, (req,res,next) =>{
-    if(req.user.role !== "User") return next();
-    console.log("Only admins and managers can access users");
-    res.status(403).json({err : "Only admins and managers can access users"})
-  },
-   getAllUsers)
+
+router.post("/user/:userId/logout", checkAuth, checkRegularUser, logoutById);
+router.delete("/user/:userId", checkAuth, checkAdmin, deleteUser);
+
+router.get('/users', checkAuth, checkRegularUser, getAllUsers);
 
 
 
