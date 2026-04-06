@@ -2,6 +2,7 @@ import Directory from "../models/directorySchema.js";
 import User from "../models/UserSchema.js";
 import mongoose, { Types } from "mongoose";
 import redisClient from "../config/redis.js"
+import Session from "../models/sessionModel.js";
 import { registerSchema,loginSchema } from "../validators/authSchema.js";
 
 export const register = async (req, res, next) => {
@@ -120,6 +121,26 @@ export const login = async (req, res, next) => {
   res.json({ message: "logged in" });
 };
 
+
+export const getAllUsers = async (req, res, next) => {
+  const allUsers = await User.find().lean();
+
+  const transformedUsers = await Promise.all(
+    allUsers.map(async ({ _id, name, email ,role}) => {
+      const sessionCount = await redisClient.lLen(`user_sessions:${_id}`);
+      return {
+        id: _id,
+        name,
+        email,
+        role,
+        isLoggedIn: sessionCount > 0,
+      };
+    })
+  );
+  console.log(transformedUsers);
+  res.status(200).json(transformedUsers); 
+};
+
 export const getCurrentUser = async (req, res) => {
   const userId = req.user.id;
   const user = await User.findById(userId);
@@ -128,6 +149,7 @@ export const getCurrentUser = async (req, res) => {
     name: user.name,
     email: user.email,
     picture: user.picture,
+    role:user.role
   });
 };
 
@@ -153,6 +175,22 @@ export const logout = async (req, res) => {
   res.status(204).end();
 };
 
+export const logoutById = async (req, res, next) =>{
+    const {userId} = req.params;
+    console.log(userId);
+   try{
+      const sessionIds = await redisClient.lRange(`user_sessions:${userId}`, 0, -1);
+
+      for (const id of sessionIds) {
+        await redisClient.del(`session:${id}`);
+      }
+      await redisClient.del(`user_sessions:${userId}`);
+      res.status(204).end();
+    }  catch(err){
+    next(err)
+   }
+    
+}
 
 export const logoutAllDevices = async (req, res) => {
   const { sid } = req.signedCookies;
@@ -178,6 +216,22 @@ export const logoutAllDevices = async (req, res) => {
 
   res.clearCookie("sid");
   res.status(204).end();
+};
+
+export const deleteUser = async (req, res, next) => {
+  const { userId } = req.params;
+
+  if (req.user.id === userId) {
+    return res.status(403).json({ err: "You cannot delete yourself." });
+  }
+
+  try {
+    await redisClient.del(`user_sessions:${userId}`);
+    await User.findByIdAndDelete(userId);
+    res.status(204).end();
+  } catch (err) {
+    next(err);
+  }
 };
 
 

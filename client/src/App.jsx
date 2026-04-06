@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import DirectoryView from "./DirectoryView";
 import Register from "./Register";
 import Login from "./Login";
+import UsersPage from "./UsersPage";
 
 const router = createBrowserRouter([
   {
@@ -19,6 +20,10 @@ const router = createBrowserRouter([
   {
     path: "/directory/:dirId",
     element: <DirectoryView />,
+  },
+  {
+    path: "/users",
+    element: <UsersPage />,
   },
 ]);
 

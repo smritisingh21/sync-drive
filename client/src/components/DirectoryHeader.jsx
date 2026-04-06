@@ -131,7 +131,7 @@ function DirectoryHeader({
             disabled={disabled}
             className="p-2.5 border-2 text-sm flex items-center gap-2 justify-center text-slate-600 hover:bg-white hover:text-indigo-600 hover:shadow-sm rounded-lg transition-all disabled:opacity-40 disabled:hover:bg-transparent"
           >
-            <FaFolderPlus size={18} fill="blue"/> <p className="dsm\:hidden">New Folder</p>
+            <FaFolderPlus size={18} fill="blue"/> <p className="hidden">New Folder</p>
           </button>
 
           <button
@@ -140,7 +140,7 @@ function DirectoryHeader({
             disabled={disabled}
             className="p-2.5 border-2 text-sm flex items-center gap-2 justify-center  text-slate-600 hover:bg-white hover:text-indigo-600 hover:shadow-sm rounded-lg transition-all disabled:opacity-40 disabled:hover:bg-transparent"
           >
-            <FaUpload size={18}  fill="purple"/> New file
+            <FaUpload size={18}  fill="purple"/> <p className="hidden">New file</p>
           </button>
         </div>
 
