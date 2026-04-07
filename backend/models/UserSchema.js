@@ -1,7 +1,6 @@
 import { model, Schema } from "mongoose";
 import bcrypt from "bcrypt";
 
-
 const userSchema = new Schema(
   {
     name: {
@@ -33,6 +32,10 @@ const userSchema = new Schema(
       enum:['User' , 'Manager', 'Admin'],
       default:'User'
 
+    },
+    deleted: {
+      type: Boolean,
+      default: false,
     },
     picture: {
       type: String,

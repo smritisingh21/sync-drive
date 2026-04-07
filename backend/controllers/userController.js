@@ -2,7 +2,7 @@ import Directory from "../models/directorySchema.js";
 import User from "../models/UserSchema.js";
 import mongoose, { Types } from "mongoose";
 import redisClient from "../config/redis.js"
-import Session from "../models/sessionModel.js";
+import File from "../models/fileSchema.js";
 import { registerSchema,loginSchema } from "../validators/authSchema.js";
 
 export const register = async (req, res, next) => {
@@ -78,7 +78,7 @@ export const login = async (req, res, next) => {
   }
 
   const { email, password } = req.body;
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email, deleted: false });
   
   if (!user) {
     return res.status(404).json({ error: "Invalid Credentials" });
@@ -123,7 +123,7 @@ export const login = async (req, res, next) => {
 
 
 export const getAllUsers = async (req, res, next) => {
-  const allUsers = await User.find().lean();
+  const allUsers = await User.find({deleted :false}).lean();
 
   const transformedUsers = await Promise.all(
     allUsers.map(async ({ _id, name, email ,role}) => {
@@ -142,6 +142,7 @@ export const getAllUsers = async (req, res, next) => {
 };
 
 export const getCurrentUser = async (req, res) => {
+
   const userId = req.user.id;
   const user = await User.findById(userId);
 
@@ -226,8 +227,14 @@ export const deleteUser = async (req, res, next) => {
   }
 
   try {
+    const sessionIds = await redisClient.lRange(`user_sessions:${userId}`, 0, -1);
+    for (const id of sessionIds) {
+      await redisClient.del(`session:${id}`);
+    }
     await redisClient.del(`user_sessions:${userId}`);
-    await User.findByIdAndDelete(userId);
+    await User.findByIdAndUpdate(userId, { deleted: true });
+    // await File.deleteMany({userId});
+    // await Directory.deleteMany({userId})
     res.status(204).end();
   } catch (err) {
     next(err);

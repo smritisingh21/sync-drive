@@ -7,11 +7,14 @@ import Session from "../models/sessionModel.js"
 export const loginWithGoogle = async (req, res, next) =>{
     const {idToken} = req.body
     const userData = await verifyToken(idToken);
-    const {name , email, picture} = userData;
-    const user = await User.findOne({ email }).select("-__v");
+  const { name, email, picture } = userData;
+  const user = await User.findOne({ email }).select("-__v");
 
-    if (user) {
-    const allSessions = await Session.find({ userId: user.id });
+  if (user) {
+    if (user.deleted) {
+      return res.status(403).json({ err: "Your account has been deleted. Contact your admin." });
+    }
+
 
     if (allSessions.length >= 2) {
       await allSessions[0].deleteOne();

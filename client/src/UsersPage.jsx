@@ -160,6 +160,9 @@ export default function UsersPage() {
                 ) : (
                   users.map((user) => {
                     const style = getRoleStyle(user.role);
+                    const canLogoutUser = user.isLoggedIn && !(currentUser.role === "Manager" && user.role === "Admin");
+                    const canDeleteUser = currentUser.role === "Admin" && currentUser.email !== user.email;
+
                     return (
                       <tr key={user.id} className="group hover:bg-slate-50/80 transition-colors">
                         <td className="p-6">
@@ -168,7 +171,7 @@ export default function UsersPage() {
                               {user.name?.charAt(0) || 'U'}
                             </div>
                             <div className="flex flex-col">
-                              <span className="font-bold text-slate-900">{user.name}</span>
+                              <span className="font-bold text-slate-900">{user.name}{currentUser.email === user.email && <span> (You)</span>}</span>
                               <span className="text-xs text-slate-400">{user.email}</span>
                             </div>
                           </div>
@@ -189,32 +192,30 @@ export default function UsersPage() {
                         </td>
                           <td className="p-6 text-right">
                           <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => logoutUser(user.id)}
-                              disabled={!user.isLoggedIn || (currentUser.role !== "Admin" && currentUser.role !== "Manager")}
-                              className={`p-2.5 rounded-xl cursor-pointer transition-all flex items-center gap-2 ${user.isLoggedIn ?
-                                 'bg-rose-50 text-rose-500 hover:bg-rose-100' : 'text-slate-200 cursor-not-allowed'
-                              }`}
-                              title="Terminate Session"
-                            >Logout
-                              <LogOut size={18} />
-                            </button>
-                          
+                            {canLogoutUser ? (
+                              <button
+                                onClick={() => logoutUser(user.id)}
+                                className="p-2.5 rounded-xl cursor-pointer transition-all flex items-center gap-2 bg-rose-50 text-rose-500 hover:bg-rose-100"
+                                title="Terminate Session"
+                              >Logout
+                                <LogOut size={18} />
+                              </button>
+                            ) : null}
                           </div>
                         </td>
                         
-                        {currentUser.role == "Admin" &&  ( //only admins can delete user
-                        <td>
-                          <div className="flex items-center justify-end p-3">
-
-                           <button
-                           onClick={() => deleteUser(user.id)}
-                           className="p-2.5 text-white bg-red-500  hover:bg-rose-300 rounded-md transition-colors">
-                            Delete
-                          </button>
+                        <td className="p-6 text-right">
+                          <div className="flex justify-end gap-2">
+                            {canDeleteUser ? (
+                              <button
+                                onClick={() => deleteUser(user.id)}
+                                className="p-2.5 text-white bg-red-500 hover:bg-rose-300 rounded-md transition-colors"
+                              >
+                                Delete
+                              </button>
+                            ) : null}
                           </div>
                         </td>
-                        )}
                       </tr>
                     );
                   })

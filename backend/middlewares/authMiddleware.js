@@ -22,10 +22,18 @@ export default async function checkAuth(req, res, next) {
   
   const user = await User.findById(session.userId);
 
+  if (!user || user.deleted) {
+    res.clearCookie("sid", {
+      httpOnly: true,
+      signed: true,
+    });
+    return res.status(401).json({ error: "Session invalidated. Please login again." });
+  }
+
   req.user = {
-    id : session.userId ,
-    rootDirId : session.rootDirId,
-    role: user?.role || 'User'
+    id: session.userId,
+    rootDirId: session.rootDirId,
+    role: user.role || "User",
   };
   
   next();
