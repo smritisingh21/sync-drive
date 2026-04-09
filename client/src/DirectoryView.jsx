@@ -15,6 +15,7 @@ function DirectoryView() {
   const [directoryName, setDirectoryName] = useState("My Drive");
   const [directoriesList, setDirectoriesList] = useState([]);
   const [filesList, setFilesList] = useState([]);
+  const [breadcrumb, setBreadcrumb] = useState([{ id: "", name: "My Drive" }]);
   const [errorMessage, setErrorMessage] = useState("");
   const [showCreateDirModal, setShowCreateDirModal] = useState(false);
   const [newDirname, setNewDirname] = useState("New Folder");
@@ -95,8 +96,21 @@ function handleRowClick(type, id) {
     } catch (error) { setErrorMessage(error.message); }
   }
 
+  async function getBreadcrumbPath() {
+    try {
+      const response = await fetch(`${BASE_URL}/directory/${dirId || ""}/breadcrumb`, {
+        credentials: "include",
+      });
+      if (response.status === 401) { navigate("/login"); return; }
+      await handleFetchErrors(response);
+      const data = await response.json();
+      setBreadcrumb(data.breadcrumb);
+    } catch (error) { console.log("Could not fetch breadcrumb:", error.message); }
+  }
+
   useEffect(() => {
     getDirectoryItems();
+    getBreadcrumbPath();
     setActiveContextMenu(null);
   }, [dirId]);
 
@@ -294,6 +308,8 @@ const listProps = {
             fileInputRef={fileInputRef}
             handleFileSelect={handleFileSelect}
             disabled={errorMessage === "Directory not found or you do not have access to it!"}
+            breadcrumb={breadcrumb}
+            onBreadcrumbClick={(id) => navigate(`/directory/${id}`)}
           />
         </div>
         {/* Toolbar Section */}

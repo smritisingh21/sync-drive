@@ -137,3 +137,33 @@ export const deleteDirectory = async (req, res, next) => {
   }
   return res.json({ message: "Files deleted successfully" });
 };
+
+export const getBreadcrumb = async (req, res, next) => {
+  const user = req.user;
+  const _id = req.params.id || user.rootDirId.toString();
+  
+  try {
+    const breadcrumb = [];
+    let currentDirId = _id;
+
+    // Walk up the directory tree to build the breadcrumb
+    while (currentDirId) {
+      const dir = await Directory.findOne({
+        _id: currentDirId,
+        userId: user.id,
+      }).select("_id name parentDirId").lean();
+
+      if (!dir) break;
+
+      breadcrumb.unshift({ id: dir._id, name: dir.name });
+      currentDirId = dir.parentDirId;
+    }
+
+    // Add root directory at the beginning
+    breadcrumb.unshift({ id: user.rootDirId, name: "My Drive" });
+
+    return res.status(200).json({ breadcrumb });
+  } catch (err) {
+    next(err);
+  }
+};

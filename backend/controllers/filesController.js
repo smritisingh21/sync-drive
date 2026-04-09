@@ -22,7 +22,7 @@ export const uploadFile = async (req, res, next) => {
 
     if (filesize > 5 * 1024 * 1024){
       console.log('File too large');
-      res.detroy();
+      res.destroy();
     }
     
     const filename = filenameHeader ? decodeURIComponent(filenameHeader) : "untitled";

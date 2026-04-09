@@ -15,6 +15,8 @@ function DirectoryHeader({
   fileInputRef,
   handleFileSelect,
   disabled = false,
+  breadcrumb = [],
+  onBreadcrumbClick,
 }) {
   const BASE_URL = "http://localhost:8000";
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -118,9 +120,29 @@ function DirectoryHeader({
 
   return (
     <header className="flex items-center justify-between">
-      <h1 className="text-2xl font-bold text-slate-800 tracking-tight truncate max-w-[50%]">
-        {directoryName}
-      </h1>
+      <div className="flex-1">
+        {/* Breadcrumb Navigation */}
+        <nav className="flex items-center gap-2 mb-3 text-sm text-slate-600">
+          {breadcrumb.map((item, index) => (
+            <div key={item.id} className="flex items-center gap-2">
+              <button
+                onClick={() => onBreadcrumbClick && onBreadcrumbClick(item.id)}
+                className="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors truncate max-w-[200px]"
+              >
+                {item.name}
+              </button>
+              {index < breadcrumb.length - 1 && (
+                <span className="text-slate-400">/</span>
+              )}
+            </div>
+          ))}
+        </nav>
+
+        {/* Directory Name */}
+        <h1 className="text-2xl font-bold text-slate-800 tracking-tight truncate max-w-[50%]">
+          {directoryName}
+        </h1>
+      </div>
 
       <div className="flex items-center gap-2">
         {/* Action Buttons */}
