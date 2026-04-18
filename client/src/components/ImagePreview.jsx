@@ -35,8 +35,8 @@ export default function ImagePreview({
 
   return (
     <div 
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/95 backdrop-blur-md animate-in fade-in duration-300"
-      onClick={onClose}
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-white/95 backdrop-blur-md animate-in fade-in duration-300"
+      onClick={() =>onClose()}
     >
       {/* Top Toolbar */}
       <div className="absolute top-0 inset-x-0 p-4 flex justify-between items-center bg-gradient-to-b from-black/50 to-transparent">
@@ -67,13 +67,13 @@ export default function ImagePreview({
         <>
           <button 
             onClick={handlePrev}
-            className="absolute left-4 z-[210] p-4 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all"
+            className="absolute left-4 z-[210] p-4 text-black/50 hover:text-white hover:bg-white/10 rounded-full transition-all"
           >
             <FaChevronLeft size={32} />
           </button>
           <button 
             onClick={handleNext}
-            className="absolute right-4 z-[210] p-4 text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-all"
+            className="absolute right-4 z-[210] p-4 text-black/50 hover:text-white hover:bg-white/10 rounded-full transition-all"
           >
             <FaChevronRight size={32} />
           </button>
@@ -84,7 +84,7 @@ export default function ImagePreview({
       <div className="relative max-w-[90vw] max-h-[85vh] select-none" onClick={(e) => e.stopPropagation()}>
         <img 
           key={currentImage.id} // Key forces re-render/animation on nav
-          src={`${BASE_URL}/file/${currentImage.id}?action=view`}
+          src={`${BASE_URL}/file/${currentImage.id}`}
           alt={currentImage.name}
           className="max-w-full max-h-[85vh] object-contain shadow-2xl rounded-sm animate-in zoom-in-95 duration-300"
         />

@@ -126,11 +126,6 @@ function handleRowClick(type, id) {
     }
   }
 
-  function handleRowClick(type, id) {
-    if (type === "directory") { navigate(`/directory/${id}`); } 
-    else { window.location.href = `${BASE_URL}/file/${id}`; }
-  }
-
   function handleFileSelect(e) {
     const selectedFiles = Array.from(e.target.files);
     if (selectedFiles.length === 0) return;

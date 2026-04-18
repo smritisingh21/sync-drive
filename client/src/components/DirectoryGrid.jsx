@@ -33,7 +33,7 @@ export default function DirectoryGrid({
     if (isImagePreview && itemId && !String(itemId).startsWith("temp-")) {
       return (
         <img 
-          src={`${BASE_URL}/file/${itemId}?action=view`} 
+          src={`${BASE_URL}/file/${itemId}`} 
           alt="preview"
           className="w-full h-full object-cover rounded-xl"
           onError={(e) => { e.target.style.display = 'none'; }} 
