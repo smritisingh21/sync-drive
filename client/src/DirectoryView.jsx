@@ -6,6 +6,8 @@ import RenameModal from "./components/RenameModal";
 import ImagePreview from "./components/ImagePreview";
 import DirectoryList from "./components/DirectoryList";
 import DirectoryGrid from "./components/DirectoryGrid";
+import { uploadInitiate } from "./apis/fileApi.js";
+
 
 function DirectoryView() {
   const BASE_URL = "http://localhost:8000";
@@ -129,11 +131,13 @@ function handleRowClick(type, id) {
   function handleFileSelect(e) {
     const selectedFiles = Array.from(e.target.files);
     if (selectedFiles.length === 0) return;
-    console.log(selectedFiles);
+
     const newItems = selectedFiles.map((file) => {
       const tempId = `temp-${Date.now()}-${Math.random()}`;
       return { file, name: file.name, size:file.size, id: tempId, isUploading: false };
     });
+
+
     setFilesList((prev) => [...newItems, ...prev]);
     newItems.forEach((item) => { setProgressMap((prev) => ({ ...prev, [item.id]: 0 })); });
     setUploadQueue((prev) => [...prev, ...newItems]);
@@ -142,7 +146,10 @@ function handleRowClick(type, id) {
       setIsUploading(true);
       processUploadQueue([...uploadQueue, ...newItems.reverse()]);
     }
+
   }
+
+
 
   function processUploadQueue(queue) {
     if (queue.length === 0) {

@@ -241,4 +241,7 @@ export const deleteUser = async (req, res, next) => {
   }
 };
 
-
+export const uploadInitiate = async (req, res, next) =>{
+  console.log(req.body);
+  res.json({url : "testUrl"})
+}

@@ -37,6 +37,7 @@ export const uploadFile = async (req, res, next) => {
     });
 
     const fileId = insertedFile.id;
+    let fileUploadedStatus = false;
 
     const fullFileName = `${fileId}${extension}`;
     const filePath = `./storage/${fullFileName}`
@@ -61,10 +62,22 @@ export const uploadFile = async (req, res, next) => {
     })
 
     req.on("end", async () => {
+      fileUploadedStatus = true;
       console.log({filesize});
       console.log({totalFileSize});
       return res.status(201).json({ message: "File Uploaded" });
     });
+
+    req.on("close" , async () =>{
+      console.log("Upload cancelled");
+      try{
+        if(!fileUploadedStatus){
+        await insertedFile.deleteOne();
+        }
+      }catch(err){
+        res.json({error : err})
+      }
+    })
 
     req.on("error", async () => {
       await File.deleteOne({ _id: insertedFile.insertedId });
