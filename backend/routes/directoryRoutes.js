@@ -6,15 +6,12 @@ import {
   deleteDirectory,
   getDirectory,
   renameDirectory,
-  getBreadcrumb,
-} from "../controllers/directoryContoller.js";
+} from "../controllers/directoryController.js";
 
 const router = express.Router();
 
 router.param("parentDirId", validateIdMiddleware);
 router.param("id", validateIdMiddleware);
-
-router.get("/:id/breadcrumb", getBreadcrumb);
 
 router.get("/:id?", getDirectory);
 

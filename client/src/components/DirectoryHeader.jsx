@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
+import React from "react";
+
 import { useNavigate } from "react-router-dom";
+import { fetchUser, logoutUser, logoutAllSessions } from "../api/userApi";
 import {
   FaFolderPlus,
   FaUpload,
@@ -15,97 +18,68 @@ function DirectoryHeader({
   fileInputRef,
   handleFileSelect,
   disabled = false,
-  breadcrumb = [],
-  onBreadcrumbClick,
 }) {
-  const BASE_URL = "http://localhost:8000";
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [userName, setUserName] = useState("Guest User");
   const [userEmail, setUserEmail] = useState("guest@example.com");
-  const [usedStorage, setUsedStorage] = useState(0);
-
-  const totalGB = 2147483648 / (1024 ** 3);
+  const [userPicture, setUserPicture] = useState("");
+  const [maxStorageInBytes, setMaxStorageInBytes] = useState(1073741824);
+  const [usedStorageInBytes, setUsedStorageInBytes] = useState(0);
+  const usedGB = usedStorageInBytes / 1024 ** 3;
+  const totalGB = maxStorageInBytes / 1024 ** 3;
 
   const userMenuRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    async function fetchUser() {
+    async function loadUser() {
       try {
-        const response = await fetch(`${BASE_URL}/user`, { 
-          credentials: "include"
-         });
-
-        if (response.ok) {
-          const user = await response.json();
-          setLoggedIn(true);
-          setUserName(user.name);
-          setUserEmail(user.email);
-        } else if (response.status === 401) {
-          setLoggedIn(false);
-          setUserName("Guest User");
-          setUserEmail("guest@example.com");
-        }
-      } catch (err) { console.error("Error fetching user info:", err); }
+        const user = await fetchUser();
+        setUserName(user.name);
+        setUserEmail(user.email);
+        setMaxStorageInBytes(user.maxStorageInBytes);
+        setUsedStorageInBytes(user.usedStorageInBytes);
+        setLoggedIn(true);
+      } catch (err) {
+        setLoggedIn(false);
+        setUserName("Guest User");
+        setUserEmail("guest@example.com");
+      }
     }
-    fetchUser();
-    fetchStorage();
-  }, [BASE_URL]);
+    loadUser();
+  }, []);
 
-  const handleUserIconClick = () => setShowUserMenu((prev) => !prev);
-
-  const fetchStorage = async () =>{
-   try{
-     const response = await fetch(`${BASE_URL}/file/getStorage`, {
-      method: "GET",
-      credentials: "include"
-     });
-
-    if(response.ok){
-      const data = await response.json()
-      const used = (data.usedStorage/ (1024 ** 3)).toFixed(3)
-      const percentage = (usedStorage / totalGB) * 100;
-      setUsedStorage(used);
-    }
-   }catch(err){
-    console.log("Could not get filesize");
-   }
-  }
-
+  const handleUserIconClick = () => {
+    setShowUserMenu((prev) => !prev);
+  };
 
   const handleLogout = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/user/logout`, {
-         method: "POST",
-         credentials: "include" });
-      if (response.ok) {
-        setLoggedIn(false);
-        setUserName("Guest User");
-        setUserEmail("guest@example.com");
-        navigate("/login");
-      }
-    } catch (err) { 
-      console.error("Logout error:", err); } 
-      finally {
-        setShowUserMenu(false); 
-      }
+      await logoutUser();
+      setLoggedIn(false);
+      setUserName("Guest User");
+      setUserEmail("guest@example.com");
+      navigate("/login");
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      setShowUserMenu(false);
+    }
   };
-
 
   const handleLogoutAll = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/user/logoutAllDevices`, { 
-        method: "POST", 
-        credentials: "include" 
-      });
-      if (response.ok) {
-        setLoggedIn(false);
-        setUserName("Guest User");
-        setUserEmail("guest@example.com");
-        navigate("/login");
-      }
-    } catch (err) { console.error("Logout error:", err); } finally { setShowUserMenu(false); }
+      await logoutAllSessions();
+      setLoggedIn(false);
+      setUserName("Guest User");
+      setUserEmail("guest@example.com");
+      navigate("/login");
+    } catch (err) {
+      console.error("Logout all error:", err);
+    } finally {
+      setShowUserMenu(false);
+    }
   };
 
   useEffect(() => {
@@ -119,112 +93,91 @@ function DirectoryHeader({
   }, []);
 
   return (
-    <header className="flex items-center justify-between">
-      <div className="flex-1">
-        {/* Breadcrumb Navigation */}
-        <nav className="flex items-center gap-2 mb-3 text-sm text-slate-600">
-          {breadcrumb.map((item, index) => (
-            <div key={item.id} className="flex items-center gap-2">
-              <button
-                onClick={() => onBreadcrumbClick && onBreadcrumbClick(item.id)}
-                className="text-indigo-600 hover:text-indigo-800 hover:underline transition-colors truncate max-w-[200px]"
-              >
-                {item.name}
-              </button>
-              {index < breadcrumb.length - 1 && (
-                <span className="text-slate-400">/</span>
-              )}
-            </div>
-          ))}
-        </nav>
-
-        {/* Directory Name */}
-        <h1 className="text-2xl font-bold text-slate-800 tracking-tight truncate max-w-[50%]">
-          {directoryName}
-        </h1>
-      </div>
-
-      <div className="flex items-center gap-2">
-        {/* Action Buttons */}
-        <div className="flex gap-2 ">
-          <button
-            title="Create Folder"
-            onClick={onCreateFolderClick}
-            disabled={disabled}
-            className="p-2.5 border-2 text-sm flex items-center gap-2 justify-center text-slate-600 hover:bg-white hover:text-indigo-600 hover:shadow-sm rounded-lg transition-all disabled:opacity-40 disabled:hover:bg-transparent"
-          >
-            <FaFolderPlus size={18} fill="blue"/> <p className="hidden">New Folder</p>
-          </button>
-
-          <button
-            title="Upload Files"
-            onClick={onUploadFilesClick}
-            disabled={disabled}
-            className="p-2.5 border-2 text-sm flex items-center gap-2 justify-center  text-slate-600 hover:bg-white hover:text-indigo-600 hover:shadow-sm rounded-lg transition-all disabled:opacity-40 disabled:hover:bg-transparent"
-          >
-            <FaUpload size={18}  fill="purple"/> <p className="hidden">New file</p>
-          </button>
-        </div>
-
+    <header className="flex items-center justify-between border-b border-gray-300 py-2 mb-4">
+      <h1 className="text-xl font-semibold">{directoryName}</h1>
+      <div className="flex gap-4 items-end">
+        <button
+          className="text-blue-500 hover:text-blue-700 text-xl -mb-0.5 mr-0.5 disabled:text-blue-300 disabled:cursor-not-allowed"
+          title="Create Folder"
+          onClick={onCreateFolderClick}
+          disabled={disabled}
+        >
+          <FaFolderPlus />
+        </button>
+        <button
+          className="text-blue-500 hover:text-blue-700 text-xl disabled:text-blue-300 disabled:cursor-not-allowed"
+          title="Upload Files"
+          onClick={onUploadFilesClick}
+          disabled={disabled}
+        >
+          <FaUpload />
+        </button>
         <input
           ref={fileInputRef}
           id="file-upload"
           type="file"
           className="hidden"
-          multiple
           onChange={handleFileSelect}
         />
-
-        {/* User Menu */}
-        <div className="relative" ref={userMenuRef}>
+        <div className="relative flex" ref={userMenuRef}>
           <button
+            className="text-blue-500 hover:text-blue-700 text-xl"
+            title="User Menu"
             onClick={handleUserIconClick}
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors"
           >
-            <FaUser size={16} />
+            {userPicture ? (
+              <img
+                className="w-8 h-8 rounded-full object-cover"
+                src={userPicture}
+                alt={userName}
+              />
+            ) : (
+              <FaUser />
+            )}
           </button>
-
           {showUserMenu && (
-            <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl ring-1 ring-black/5 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+            <div className="absolute right-0 top-4 mt-2 w-48 bg-white rounded-md shadow-md z-10 border border-gray-300 overflow-hidden">
               {loggedIn ? (
                 <>
-                  <div className="px-4 py-4 bg-slate-50/50">
-                    <p className="text-sm font-semibold text-slate-900 truncate">{userName}</p>
-                    <p className="text-xs text-slate-500 truncate">{userEmail}</p>
-                    <div className=" mt-6 flex w-full bg-blue-400 h-2 rounded-xl">
-                      <div className={`h-2  bg-blue-800 rounded-xl`} 
-                      style={{ width: `${(usedStorage / totalGB) * 100}%` }}></div>
+                  <div className="px-3 py-2 text-sm text-gray-800">
+                    <div className="font-semibold">{userName}</div>
+                    <div className="text-xs text-gray-500">{userEmail}</div>
+                    <div className="flex flex-col text-xs mr-2 mt-2">
+                      <div className="w-40 h-1 bg-gray-300 rounded-full overflow-hidden mb-1">
+                        <div
+                          className="bg-blue-500 rounded-full h-full"
+                          style={{ width: `${(usedGB / totalGB) * 100}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-xs">
+                        {usedGB.toFixed(2)} GB of {totalGB} GB used
+                      </div>
                     </div>
-                    <p className="text-sm font-semibold text-slate-700 truncate mt-2 ">
-                      {usedStorage} GB used out of {totalGB.toFixed(2)} GB
-                    </p>
                   </div>
-                  <div className="border-t border-slate-100" />
-                  <button
+                  <div className="border-t border-gray-200" />
+                  <div
+                    className="flex items-center gap-2 text-gray-700 cursor-pointer hover:bg-gray-200 px-4 py-2"
                     onClick={handleLogout}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <FaSignOutAlt />
-                    <span className="font-medium">Logout</span>
-                  </button>
-               
-                  <div className="border-t border-slate-100" />
-                  <button
+                    <FaSignOutAlt className="text-blue-600" /> Logout
+                  </div>
+                  <div
+                    className="flex items-center gap-2 text-gray-700 cursor-pointer hover:bg-gray-200 px-4 py-2"
                     onClick={handleLogoutAll}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <FaSignOutAlt />
-                    <span className="font-medium">Logout from all devices</span>
-                  </button>
+                    <FaSignOutAlt className="text-blue-600" /> Logout All
+                  </div>
                 </>
               ) : (
-                <button
-                  onClick={() => { navigate("/login"); setShowUserMenu(false); }}
-                  className="flex w-full items-center gap-3 px-4 py-4 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                <div
+                  className="flex items-center gap-2 text-gray-700 cursor-pointer hover:bg-gray-200 px-4 py-2"
+                  onClick={() => {
+                    navigate("/login");
+                    setShowUserMenu(false);
+                  }}
                 >
-                  <FaSignInAlt className="text-indigo-600" />
-                  <span className="font-medium">Login</span>
-                </button>
+                  <FaSignInAlt className="text-blue-600" /> Login
+                </div>
               )}
             </div>
           )}

@@ -8,7 +8,7 @@ import fileRoutes from "./routes/fileRoutes.js";
 import authRoutes from "./routes/authRoutes.js"
 import userRoutes from "./routes/userRoutes.js";
 import checkAuth from "./middlewares/authMiddleware.js";
-import connectDB from "./config/db.js";
+import {connectDB} from "./config/db.js";
 
 await connectDB();
 export const secret = "SyncDriveSecret"

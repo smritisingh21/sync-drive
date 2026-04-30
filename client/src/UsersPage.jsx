@@ -1,236 +1,130 @@
-import React, { useEffect, useState } from "react";
-import { User, Shield, Ghost, LogOut, Loader2, MoreVertical, Search, Filter } from "lucide-react";
-import { BsArrowLeftSquare } from "react-icons/bs";
-import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import React from "react";
+
+import { useNavigate } from "react-router-dom";
+import {
+  fetchAllUsers,
+  fetchUser,
+  deleteUserById,
+  logoutUserById,
+} from "./api/userApi";
+
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
-  const [error, setError] = useState("");
-  const[currentUser, setCurrentUser] = useState("");
-  const [loading, setLoading] = useState(true);
-
+  const [userName, setUserName] = useState("Guest User");
+  const [userEmail, setUserEmail] = useState("");
+  const [userRole, setUserRole] = useState("User");
   const navigate = useNavigate();
- const BASE_URL = "http://localhost:8000";
- 
-  const logoutUser = async (userId) => {
-    const logoutConfirm = confirm('This user will be logged out. Continue?')
-    if(!logoutConfirm) return;
-    try {
-      console.log(userId);
-      const response = await fetch(`${BASE_URL}/user/${userId}/logout`, {
-         method: "POST",
-         credentials: "include" });
-      if (response.ok) {
-        console.log("Logged out user.");
-        fetchUsers();
-      }
-    } catch (err) { 
-      console.error("Logout error:", err); } 
-     
-  };
-  const deleteUser = async (userId) => {
-    const shouldDelete = confirm('This user will be deleted. Continue?')
-    if(!shouldDelete) return;
-    try {
-      console.log(userId);
-      const response = await fetch(`${BASE_URL}/user/${userId}`, {
-         method: "DELETE",
-         credentials: "include" });
-      if (response.ok) {
-        console.log("User Deleted");
-        fetchUsers();
-      }
-    } catch (err) { 
-      console.error("Logout error:", err); } 
-     
-  };
 
-  async function fetchCurrentUser (){
+  const logoutUser = async (user) => {
+    const confirmed = confirm(`You are about to logout ${user.email}`);
+    if (!confirmed) return;
     try {
-       
-        const response = await fetch(`${BASE_URL}/user`, { 
-          credentials: "include"
-         });
-        
-        if (response.ok) {
-          const user = await response.json();
-          setCurrentUser(user);
-        
-        }
-        if(response.status == 403){
-          setError("Could not fetch user")
-          navigate("/")
-        }
-      } catch (err) {
-        console.error("Fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-
-  }
-
-  async function fetchUsers() {
-    try {
-      const BASE_URL = "http://localhost:8000";
-      const response = await fetch(`${BASE_URL}/users`, { 
-        credentials: "include"
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.map(u => ({
-          ...u,
-        })));
-      }
-      if(response.status == 403){
-        setError("You are not authorised to view users details.Please contact your manager")
-      }
+      await logoutUserById(user.id);
+      fetchUsers();
     } catch (err) {
-      console.error("Fetch error:", err);
-    } finally {
-      setLoading(false);
+      console.error("Logout error:", err);
     }
-  }
+  };
 
+  const deleteUser = async (user) => {
+    const confirmed = confirm(`You are about to delete ${user.email}`);
+    if (!confirmed) return;
+    try {
+      await deleteUserById(user.id);
+      fetchUsers();
+    } catch (err) {
+      console.error("Delete error:", err);
+    }
+  };
 
   useEffect(() => {
     fetchUsers();
     fetchCurrentUser();
   }, []);
 
-  const getRoleStyle = (role) => {
-    switch (role?.toLowerCase()) {
-      case 'admin': return { icon: <Shield size={18} />, bg: 'bg-indigo-50 text-indigo-600 border-indigo-100' };
-      case 'guest': return { icon: <Ghost size={18} />, bg: 'bg-slate-50 text-slate-400 border-slate-100' };
-      default: return { icon: <User size={18} />, bg: 'bg-emerald-50 text-emerald-600 border-emerald-100' };
+  async function fetchUsers() {
+    try {
+      const data = await fetchAllUsers();
+      setUsers(data);
+    } catch (err) {
+      if (err.response?.status === 403) navigate("/");
+      else if (err.response?.status === 401) navigate("/login");
+      else console.error("Fetching users failed:", err);
     }
-  };
+  }
+
+  async function fetchCurrentUser() {
+    try {
+      const data = await fetchUser();
+      setUserName(data.name);
+      setUserEmail(data.email);
+      setUserRole(data.role);
+    } catch (err) {
+      if (err.response?.status === 401) navigate("/login");
+      else console.error("Fetching user failed:", err);
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-12 font-sans text-slate-900">
-      <div className="max-w-6xl mx-auto">
-        
-        {/* Top Header Section */}
-        <div className="p-6 mb-8 flex flex-col md:flex-row justify-between items-center gap-6 shadow-sm">
-          <div className="flex items-center gap-4">
-                <BsArrowLeftSquare size={30} className="cursor-pointer" onClick={() => navigate("/")}/>
-             <div className="p-3 bg-indigo-600 rounded-2xl text-white shadow-lg shadow-indigo-200">
-                <User size={24} />
-             </div>
-             <div>
-                <h1 className="text-2xl font-bold tracking-tight">User Directory</h1>
-                <p className="text-sm text-slate-500 font-medium">Manage and monitor system access</p>
-             </div>
-          </div>
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search users..." 
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
-              />
-            </div>
-            <button className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors">
-              <Filter size={18} />
-            </button>
-          </div>
-        </div>
-       
-        {/* Main Content Area / Table */}
-        <div className="bg-white rounded-[2rem] border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
-                  <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-400">Identity</th>
-                  <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-400">Classification</th>
-                  <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-400">Status</th>
-                  <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-400 text-right">Logout</th>
-                  <th className="p-6 text-xs font-bold uppercase tracking-widest text-slate-400 text-right">Delete</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {loading ? (
-                  <tr>
-                    <td colSpan="4" className="p-20 text-center">
-                      <Loader2 className="animate-spin mx-auto mb-2 text-indigo-600" />
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Accessing Registry...</span>
-                    </td>
-                  </tr>
-                ) : (
-                  users.map((user) => {
-                    const style = getRoleStyle(user.role);
-                    const canLogoutUser = user.isLoggedIn && !(currentUser.role === "Manager" && user.role === "Admin");
-                    const canDeleteUser = currentUser.role === "Admin" && currentUser.email !== user.email;
+    <div className="max-w-5xl mt-10 mx-4">
+      <h1 className="text-3xl font-bold mb-6">All Users</h1>
+      <p>
+        <b>{userName}</b>: <i>({userRole})</i>
+      </p>
 
-                    return (
-                      <tr key={user.id} className="group hover:bg-slate-50/80 transition-colors">
-                        <td className="p-6">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-sm">
-                              {user.name?.charAt(0) || 'U'}
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="font-bold text-slate-900">{user.name}{currentUser.email === user.email && <span> (You)</span>}</span>
-                              <span className="text-xs text-slate-400">{user.email}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-6">
-                          <div className={`inline-flex items-center gap-2 px-3 py-1.5 border rounded-xl ${style.bg}`}>
-                            {style.icon}
-                            <span className="text-[10px] font-black uppercase tracking-widest">{user.role}</span>
-                          </div>
-                        </td>
-                        <td className="p-6">
-                          <div className="flex items-center gap-2">
-                             <div className={`w-2 h-2 rounded-full ${user.isLoggedIn ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
-                             <span className={`text-[11px] font-bold uppercase tracking-tight ${user.isLoggedIn ? 'text-emerald-600' : 'text-slate-400'}`}>
-                               {user.isLoggedIn ? "Active Now" : "Inactive"}
-                             </span>
-                          </div>
-                        </td>
-                          <td className="p-6 text-right">
-                          <div className="flex justify-end gap-2">
-                            {canLogoutUser ? (
-                              <button
-                                onClick={() => logoutUser(user.id)}
-                                className="p-2.5 rounded-xl cursor-pointer transition-all flex items-center gap-2 bg-rose-50 text-rose-500 hover:bg-rose-100"
-                                title="Terminate Session"
-                              >Logout
-                                <LogOut size={18} />
-                              </button>
-                            ) : null}
-                          </div>
-                        </td>
-                        
-                        <td className="p-6 text-right">
-                          <div className="flex justify-end gap-2">
-                            {canDeleteUser ? (
-                              <button
-                                onClick={() => deleteUser(user.id)}
-                                className="p-2.5 text-white bg-red-500 hover:bg-rose-300 rounded-md transition-colors"
-                              >
-                                Delete
-                              </button>
-                            ) : null}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-
-            </table>
-          </div>
-           <div className="text-red-600  font-sans font-semibold  h-10 mb-10 rounded-xl w-auto flex justify-center items-center p-10 ">
-          <p>{error}</p>
-        </div>
-
-        </div>
-        
-      </div>
+      <table className="w-full mt-6 border-collapse">
+        <thead>
+          <tr>
+            <th className="border p-3 bg-gray-200 text-left">Name</th>
+            <th className="border p-3 bg-gray-200 text-left">Email</th>
+            <th className="border p-3 bg-gray-200 text-left">Status</th>
+            <th className="border p-3 bg-gray-200 text-left"></th>
+            {userRole === "Admin" && (
+              <th className="border p-3 bg-gray-200 text-left"></th>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((user) => (
+            <tr key={user.id}>
+              <td className="border p-3">{user.name}</td>
+              <td className="border p-3">{user.email}</td>
+              <td className="border p-3">
+                {user.isLoggedIn ? "Logged In" : "Logged Out"}
+              </td>
+              <td className="border p-3">
+                <button
+                  onClick={() => logoutUser(user)}
+                  disabled={!user.isLoggedIn}
+                  className={`px-3 py-1 text-sm text-white rounded ${
+                    user.isLoggedIn
+                      ? "bg-blue-600 hover:bg-blue-700"
+                      : "bg-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  Logout
+                </button>
+              </td>
+              {userRole === "Admin" && (
+                <td className="border p-3">
+                  <button
+                    onClick={() => deleteUser(user)}
+                    disabled={user.email === userEmail}
+                    className={`px-3 py-1 text-sm text-white rounded ${
+                      user.email === userEmail
+                        ? "bg-gray-400 cursor-not-allowed"
+                        : "bg-red-600 hover:bg-red-700"
+                    }`}
+                  >
+                    Delete
+                  </button>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

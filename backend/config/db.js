@@ -1,20 +1,18 @@
 import mongoose from "mongoose";
 
-const connectDB = async () =>{
-    try{
-        // console.log("ENV:", process.env.MONGODB_CONNECTION_STRING);
-        await mongoose.connect(process.env.MONGODB_CONNECTION_STRING);
-        console.log("Connected to database successfully");
-    }catch(error){
-        console.error("Could not connect to database" ,error);
-        process.exit(1);
-
-    }
+export async function connectDB() {
+  try {
+    await mongoose.connect(process.env.MONGODB_CONNECTION_STRING);
+    console.log("Database connected");
+  } catch (err) {
+    console.log(err);
+    console.log("Could Not Connect to the Database");
+    process.exit(1);
+  }
 }
+
 process.on("SIGINT", async () => {
-  await mongoose.connection.close();
+  await mongoose.disconnect();
   console.log("Database Disconnected!");
   process.exit(0);
 });
-
-export default connectDB;

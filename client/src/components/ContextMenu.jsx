@@ -1,90 +1,69 @@
-import { FaDownload, FaEdit, FaTrash, FaTimesCircle } from "react-icons/fa";
+import { useDirectoryContext } from "../context/DirectoryContext";
+import React from "react";
 
-function ContextMenu({
-  item,
-  contextMenuPos,
-  isUploadingItem,
-  handleCancelUpload,
-  handleDeleteFile,
-  handleDeleteDirectory,
-  openRenameModal,
-  BASE_URL,
-}) {
-  // Common styles for all menu variations
-  const menuStyles = {
-    top: contextMenuPos.y,
-    left: contextMenuPos.x,
-  };
+function ContextMenu({ item, isUploadingItem }) {
+  const {
+    handleCancelUpload,
+    setDeleteItem,
+    openRenameModal,
+    openDetailsPopup,
+    BASE_URL,
+  } = useDirectoryContext();
 
-  // Tailwind Class Groups
-  const containerClasses = "fixed z-[100] min-w-[180px] bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 animate-in fade-in zoom-in-95 duration-100";
-  const itemClasses = "flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 cursor-pointer transition-all font-medium";
-  const dangerClasses = "flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 cursor-pointer transition-all font-medium";
+  const menuClass =
+    "absolute bg-white border border-blue-400 shadow-md rounded text-sm z-50 right-2 top-4/5 overflow-hidden";
+  const itemClass = "px-4 py-2 hover:bg-blue-100 cursor-pointer";
 
-  // 1. Directory context menu
   if (item.isDirectory) {
     return (
-      <div className={containerClasses} style={menuStyles}>
+      <div className={menuClass}>
         <div
-          className={itemClasses}
+          className={itemClass}
           onClick={() => openRenameModal("directory", item.id, item.name)}
         >
-          <FaEdit className="opacity-70" />
           Rename
         </div>
-        <div className="my-1 border-t border-slate-100" />
-        <div
-          className={dangerClasses}
-          onClick={() => handleDeleteDirectory(item.id)}
-        >
-          <FaTrash className="opacity-70" />
+        <div className={itemClass} onClick={() => setDeleteItem(item)}>
           Delete
         </div>
-      </div>
-    );
-  }
-
-  // 2. Uploading state (Limited Actions)
-  if (isUploadingItem && item.isUploading) {
-    return (
-      <div className={containerClasses} style={menuStyles}>
-        <div
-          className={dangerClasses}
-          onClick={() => handleCancelUpload(item.id)}
-        >
-          <FaTimesCircle className="opacity-70" />
-          Cancel Upload
+        <div className={itemClass} onClick={() => openDetailsPopup(item)}>
+          Details
         </div>
       </div>
     );
   }
 
-  // 3. Normal File context menu
+  if (isUploadingItem && item.isUploading) {
+    return (
+      <div className={menuClass}>
+        <div className={itemClass} onClick={() => handleCancelUpload(item.id)}>
+          Cancel
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={containerClasses} style={menuStyles}>
+    <div className={menuClass}>
       <div
-        className={itemClasses}
+        className={itemClass}
         onClick={() =>
           (window.location.href = `${BASE_URL}/file/${item.id}?action=download`)
         }
       >
-        <FaDownload className="opacity-70" />
         Download
       </div>
       <div
-        className={itemClasses}
+        className={itemClass}
         onClick={() => openRenameModal("file", item.id, item.name)}
       >
-        <FaEdit className="opacity-70" />
         Rename
       </div>
-      <div className="my-1 border-t border-slate-100" />
-      <div
-        className={dangerClasses}
-        onClick={() => handleDeleteFile(item.id)}
-      >
-        <FaTrash className="opacity-70" />
+      <div className={itemClass} onClick={() => setDeleteItem(item)}>
         Delete
+      </div>
+      <div className={itemClass} onClick={() => openDetailsPopup(item)}>
+        Details
       </div>
     </div>
   );

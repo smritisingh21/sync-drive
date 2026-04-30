@@ -2,22 +2,21 @@ import { model, Schema } from "mongoose";
 
 const sessionSchema = new Schema(
   {
-    userId : {
-        type : Schema.Types.ObjectId,
-        requires:true,
+    userId: {
+      type: Schema.Types.ObjectId,
+      required: true,
     },
-    createdAt:{
-        type : Date,
-        default : Date.now,
-        required :"true",
-        expires : 360000000, 
+    createdAt: {
+      type: Date,
+      default: Date.now,
+      expires: 3600,
     },
   },
   {
-    strict : "throw"
+    strict: "throw",
   }
 );
 
-const Session = model("Session", sessionSchema );
+const Session = model("Session", sessionSchema);
 
 export default Session;

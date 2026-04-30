@@ -1,54 +1,30 @@
-import User from "../models/UserSchema.js";
 import redisClient from "../config/redis.js";
 
 export default async function checkAuth(req, res, next) {
   const { sid } = req.signedCookies;
 
   if (!sid) {
-    return res.status(401).json({ error: "Not logged in!" });
+    res.clearCookie("sid");
+    return res.status(401).json({ error: "1 Not logged in!" });
   }
 
-  const sessionData = await redisClient.get(`session:${sid}`);
+  const session = await redisClient.json.get(`session:${sid}`);
 
-  if (!sessionData) {
-    res.clearCookie("sid", {
-      httpOnly: true,
-      signed: true
-    });
-    return res.status(401).json({ error: "Session invalidated. Please login again." });
+  if (!session) {
+    res.clearCookie("sid");
+    return res.status(401).json({ error: "2 Not logged in!" });
   }
 
-  const session = JSON.parse(sessionData); 
-  
-  const user = await User.findById(session.userId);
-
-  if (!user || user.deleted) {
-    res.clearCookie("sid", {
-      httpOnly: true,
-      signed: true,
-    });
-    return res.status(401).json({ error: "Session invalidated. Please login again." });
-  }
-
-  req.user = {
-    id: session.userId,
-    rootDirId: session.rootDirId,
-    role: user.role || "User",
-  };
-  
+  req.user = { _id: session.userId, rootDirId: session.rootDirId };
   next();
 }
 
-
-
-export const checkRegularUser = (req, res, next ) =>{
-  if (req.user.role !== "User" ) return next();
-  console.log("Only admins and managers can access users");
-  res.status(403).json({ err: "Only admins and managers can access users" });
+export const checkNotRegularUser = (req, res, next) => {
+  if (req.user.role !== "User") return next();
+  res.status(403).json({ error: "You can not access users" });
 };
 
-export const checkAdmin = (req, res, next) => {
+export const checkIsAdminUser = (req, res, next) => {
   if (req.user.role === "Admin") return next();
-  console.log("Only admins can perform this action");
-  res.status(403).json({ err: "Only admins can perform this action" });
+  res.status(403).json({ error: "You can not delete users" });
 };
