@@ -1,4 +1,3 @@
-
 import { model, Schema } from "mongoose";
 
 const fileSchema = new Schema(
@@ -7,18 +6,20 @@ const fileSchema = new Schema(
       type: String,
       required: true,
     },
-    extension: {
-      type: String,
-      required: true,
-    },
     size: {
       type: Number,
+      required: true,
+    },
+    extension: {
+      type: String,
       required: true,
     },
     userId: {
       type: Schema.Types.ObjectId,
       required: true,
-      ref: "User"
+    },
+    isUploading: {
+      type: Schema.Types.Boolean,
     },
     parentDirId: {
       type: Schema.Types.ObjectId,
@@ -27,6 +28,7 @@ const fileSchema = new Schema(
   },
   {
     strict: "throw",
+    timestamps: true,
   }
 );
 
