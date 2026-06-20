@@ -8,8 +8,6 @@ import {
   FaFileCode,
   FaFileAlt,
 } from "react-icons/fa";
-import React from "react";
-
 import { BsThreeDotsVertical } from "react-icons/bs";
 import ContextMenu from "./ContextMenu";
 import { useDirectoryContext } from "../context/DirectoryContext";

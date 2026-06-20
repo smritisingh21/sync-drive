@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import React from "react";
 
 export const formatSize = (bytes = 0) => {
   const KB = 1024;

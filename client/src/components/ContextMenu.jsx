@@ -1,5 +1,4 @@
 import { useDirectoryContext } from "../context/DirectoryContext";
-import React from "react";
 
 function ContextMenu({ item, isUploadingItem }) {
   const {
@@ -48,7 +47,7 @@ function ContextMenu({ item, isUploadingItem }) {
       <div
         className={itemClass}
         onClick={() =>
-          (window.location.href = `${BASE_URL}/file/${item.id}?action=download`)
+          (window.location.href = `http://localhost:4000/file/${item.id}?action=download`)
         }
       >
         Download

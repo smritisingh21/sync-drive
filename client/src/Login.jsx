@@ -1,5 +1,4 @@
 import { useState } from "react";
-import React from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
 import { loginWithGoogle } from "./api/authApi";
@@ -7,8 +6,8 @@ import { loginUser } from "./api/userApi";
 
 const Login = () => {
   const [formData, setFormData] = useState({
-    email: "user2@gmail.com",
-    password: "1234",
+    email: "procodrr@gmail.com",
+    password: "abcd",
   });
   const [serverError, setServerError] = useState("");
   const navigate = useNavigate();

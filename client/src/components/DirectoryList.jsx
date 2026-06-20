@@ -1,8 +1,6 @@
 // DirectoryList.js
 import { useDirectoryContext } from "../context/DirectoryContext";
 import DirectoryItem from "./DirectoryItem";
-import React from "react";
-
 
 function DirectoryList({ items }) {
   const { progressMap } = useDirectoryContext();

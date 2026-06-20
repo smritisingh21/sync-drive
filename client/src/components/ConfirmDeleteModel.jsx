@@ -1,6 +1,3 @@
-import React from "react";
-
-
 function ConfirmDeleteModal({ item, onConfirm, onCancel }) {
   if (!item) return null;
 

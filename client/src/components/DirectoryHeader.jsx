@@ -1,6 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import React from "react";
-
 import { useNavigate } from "react-router-dom";
 import { fetchUser, logoutUser, logoutAllSessions } from "../api/userApi";
 import {
