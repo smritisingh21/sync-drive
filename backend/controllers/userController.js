@@ -2,6 +2,8 @@ import Directory from "../models/directoryModel.js";
 import User from "../models/userModel.js";
 import mongoose, { Types } from "mongoose";
 import Session from "../models/sessionModel.js";
+import OTP from "../models/otpModel.js";
+import redisClient from "../config/redis.js";
 import { z } from "zod/v4";
 import { loginSchema, registerSchema } from "../validators/authSchema.js";
 
@@ -12,8 +14,15 @@ export const register = async (req, res, next) => {
     return res.status(400).json({ error: z.flattenError(error).fieldErrors });
   }
 
-  const { name, email, password } = data;
-  console.log(data);
+  const { name, email, password, otp } = data;
+  console.log(otp);
+  const otpRecord = await OTP.findOne({ email, otp });
+
+  if (!otpRecord) {
+    return res.status(400).json({ error: "Invalid or Expired OTP!" });
+  }
+
+  await otpRecord.deleteOne();
 
   const session = await mongoose.startSession();
 
@@ -44,13 +53,16 @@ export const register = async (req, res, next) => {
       { session }
     );
 
-    await session.commitTransaction();
+    session.commitTransaction();
+
     res.status(201).json({ message: "User Registered" });
   } catch (err) {
-    await session.abortTransaction();
+    session.abortTransaction();
     console.log(err);
     if (err.code === 121) {
-      res.status(400).json({ error: "Invalid input, please enter valid details" });
+      res
+        .status(400)
+        .json({ error: "Invalid input, please enter valid details" });
     } else if (err.code === 11000) {
       if (err.keyValue.email) {
         return res.status(409).json({
@@ -62,67 +74,65 @@ export const register = async (req, res, next) => {
     } else {
       next(err);
     }
-  } finally {
-    session.endSession();
   }
 };
 
 export const login = async (req, res, next) => {
-  try {
-    const { success, data } = loginSchema.safeParse(req.body);
+  const { success, data } = loginSchema.safeParse(req.body);
 
-    if (!success) {
-      return res.status(400).json({ error: "Invalid Credentials" });
-    }
-
-    const { email, password } = data;
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({ error: "Invalid Credentials" });
-    }
-
-    const isPasswordValid = await user.comparePassword(password);
-
-    if (!isPasswordValid) {
-      return res.status(404).json({ error: "Invalid Credentials" });
-    }
-
-    // Enforce max 2 sessions per user — delete oldest if limit reached
-    const sessionCount = await Session.countDocuments({ userId: user._id });
-    if (sessionCount >= 2) {
-      const oldest = await Session.findOne({ userId: user._id }).sort({ createdAt: 1 });
-      if (oldest) await oldest.deleteOne();
-    }
-
-    const sessionExpiryMs = 60 * 1000 * 60 * 24 * 7; // 7 days
-    const expiresAt = new Date(Date.now() + sessionExpiryMs);
-
-    const newSession = await Session.create({
-      userId: user._id,
-      rootDirId: user.rootDirId,
-      expiresAt,
-    });
-
-    res.cookie("sid", newSession._id.toString(), {
-      httpOnly: true,
-      signed: true,
-      sameSite: "lax",
-      maxAge: sessionExpiryMs,
-    });
-
-    res.json({ message: "logged in" });
-  } catch (err) {
-    next(err);
+  if (!success) {
+    return res.status(400).json({ error: "Invalid Credentials" });
   }
+
+  const { email, password } = data;
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res.status(404).json({ error: "Invalid Credentials" });
+  }
+
+  const isPasswordValid = await user.comparePassword(password);
+
+  if (!isPasswordValid) {
+    return res.status(404).json({ error: "Invalid Credentials" });
+  }
+
+  const allSessions = await redisClient.ft.search(
+    "userIdIdx",
+    `@userId:{${user.id}}`,
+    {
+      RETURN: [],
+    }
+  );
+
+  if (allSessions.total >= 2) {
+    await redisClient.del(allSessions.documents[0].id);
+  }
+
+  const sessionId = crypto.randomUUID();
+  const redisKey = `session:${sessionId}`;
+  await redisClient.json.set(redisKey, "$", {
+    userId: user._id,
+    rootDirId: user.rootDirId,
+  });
+
+  const sessionExpiryTime = 60 * 1000 * 60 * 24 * 7;
+  await redisClient.expire(redisKey, sessionExpiryTime / 1000);
+
+  res.cookie("sid", sessionId, {
+    httpOnly: true,
+    signed: true,
+    sameSite: "lax",
+    maxAge: sessionExpiryTime,
+  });
+  res.json({ message: "logged in" });
 };
 
 export const getAllUsers = async (req, res) => {
   const allUsers = await User.find({ deleted: false }).lean();
   const allSessions = await Session.find().lean();
-  const allSessionsUserIdSet = new Set(
-    allSessions.map(({ userId }) => userId.toString())
-  );
+  const allSessionsUserId = allSessions.map(({ userId }) => userId.toString());
+  const allSessionsUserIdSet = new Set(allSessionsUserId);
 
   const transformedUsers = allUsers.map(({ _id, name, email }) => ({
     id: _id,
@@ -130,7 +140,6 @@ export const getAllUsers = async (req, res) => {
     email,
     isLoggedIn: allSessionsUserIdSet.has(_id.toString()),
   }));
-
   res.status(200).json(transformedUsers);
 };
 
@@ -149,7 +158,7 @@ export const getCurrentUser = async (req, res) => {
 
 export const logout = async (req, res) => {
   const { sid } = req.signedCookies;
-  await Session.findByIdAndDelete(sid);
+  await redisClient.del(`session:${sid}`);
   res.clearCookie("sid");
   res.status(204).end();
 };
@@ -163,18 +172,18 @@ export const logoutById = async (req, res, next) => {
   }
 };
 
-export const logoutAll = async (req, res, next) => {
-  try {
-    const { sid } = req.signedCookies;
-    const session = await Session.findById(sid).lean();
-    if (session) {
-      await Session.deleteMany({ userId: session.userId });
+export const logoutAll = async (req, res) => {
+  const { sid } = req.signedCookies;
+  const session = await redisClient.json.get(`session:${sid}`);
+  const allSessions = await redisClient.ft.search(
+    "userIdIdx",
+    `@userId:{${session.userId}}`,
+    {
+      RETURN: [],
     }
-    res.clearCookie("sid");
-    res.status(204).end();
-  } catch (err) {
-    next(err);
-  }
+  );
+  await redisClient.del(allSessions.documents.map(({ id }) => id));
+  res.status(204).end();
 };
 
 export const deleteUser = async (req, res, next) => {

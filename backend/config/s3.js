@@ -1,11 +1,16 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  GetObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export const s3Client = new S3Client({ profile: "nodejs" });
 
 export const createUploadSignedUrl = async ({ key, contentType }) => {
   const command = new PutObjectCommand({
-    Bucket: "sync-drive-storage",
+    Bucket: "procodrr-storage-app",
     Key: key,
     ContentType: contentType,
   });
@@ -16,4 +21,31 @@ export const createUploadSignedUrl = async ({ key, contentType }) => {
   });
 
   return url;
+};
+
+export const createGetSignedUrl = async ({
+  key,
+  download = false,
+  filename,
+}) => {
+  const command = new GetObjectCommand({
+    Bucket: "procodrr-storage-app",
+    Key: key,
+    ResponseContentDisposition: `${download ? "attachment" : "inline"}; filename=${encodeURIComponent(filename)}`,
+  });
+
+  const url = await getSignedUrl(s3Client, command, {
+    expiresIn: 300,
+  });
+
+  return url;
+};
+
+export const getS3FileMetaData = async (key) => {
+  const command = new HeadObjectCommand({
+    Bucket: "procodrr-storage-app",
+    Key: key,
+  });
+
+  return await s3Client.send(command);
 };

@@ -1,25 +1,23 @@
-import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import directoryRoutes from "./routes/directoryRoutes.js";
 import fileRoutes from "./routes/fileRoutes.js";
-import authRoutes from "./routes/authRoutes.js"
 import userRoutes from "./routes/userRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 import checkAuth from "./middlewares/authMiddleware.js";
-import helmet from 'helmet'
 import { connectDB } from "./config/db.js";
 
-connectDB()
-export const secret = "SyncDriveSecret"
+await connectDB();
+
+const PORT = process.env.PORT || 4000;
 
 const app = express();
-app.use(cookieParser(secret));
+app.use(cookieParser(process.env.SESSION_SECRET));
 app.use(express.json());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_URL,
     credentials: true,
   })
 );
@@ -27,25 +25,17 @@ app.use(
 app.use("/directory", checkAuth, directoryRoutes);
 app.use("/file", checkAuth, fileRoutes);
 app.use("/", userRoutes);
-app.use("/auth" ,authRoutes);
+app.use("/auth", authRoutes);
 
 app.use((err, req, res, next) => {
   console.log(err);
-  res.status(err.status || 500)
-  .json({ error: "Something went wrong!" });
+  // res.status(err.status || 500).json({ error: "Something went wrong!" });
+  res.json(err);
 });
 
-const PORT = process.env.PORT || 4000;
-const server = app.listen(PORT, () => {
-  console.log(`Server started on port ${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Server Started`);
 });
 
-server.on("error", (err) => {
-  if (err.code === "EADDRINUSE") {
-    console.error(`Port ${PORT} is already in use. Set the PORT env var or stop the process using that port.`);
-  } else {
-    console.error("Server error:", err);
-  }
-  process.exit(1);
-});
 
+// https://stackoverflow.com/questions/18367824/how-to-cancel-http-upload-from-data-events

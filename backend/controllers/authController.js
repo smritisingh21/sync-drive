@@ -1,17 +1,43 @@
 import mongoose, { Types } from "mongoose";
+import OTP from "../models/otpModel.js";
 import User from "../models/userModel.js";
 import Directory from "../models/directoryModel.js";
-import Session from "../models/sessionModel.js";
 import { verifyIdToken } from "../services/googleAuthService.js";
+import { sendOtpService } from "../services/sendOtpService.js";
+import redisClient from "../config/redis.js";
+import { otpSchema } from "../validators/authSchema.js";
 
-const SESSION_EXPIRY_MS = 60 * 1000 * 60 * 24 * 7; // 7 days
+export const sendOtp = async (req, res, next) => {
+  const { email } = req.body;
+  const resData = await sendOtpService(email);
+  res.status(201).json(resData);
+};
+
+export const verifyOtp = async (req, res, next) => {
+  const { success, data } = otpSchema.safeParse(req.body);
+
+  console.log(req.body);
+  console.log(data);
+
+  if (!success) {
+    return res.status(400).json({ error: "Invalid OTP" });
+  }
+
+  const { email, otp } = data;
+  const otpRecord = await OTP.findOne({ email, otp });
+
+  if (!otpRecord) {
+    return res.status(400).json({ error: "Invalid or Expired OTP!" });
+  }
+
+  return res.json({ message: "OTP Verified!" });
+};
 
 export const loginWithGoogle = async (req, res, next) => {
   const { idToken } = req.body;
   const userData = await verifyIdToken(idToken);
   const { name, email, picture } = userData;
   const user = await User.findOne({ email }).select("-__v");
-
   if (user) {
     if (user.deleted) {
       return res.status(403).json({
@@ -19,11 +45,16 @@ export const loginWithGoogle = async (req, res, next) => {
       });
     }
 
-    // Enforce max 2 sessions — delete oldest if limit reached
-    const sessionCount = await Session.countDocuments({ userId: user._id });
-    if (sessionCount >= 2) {
-      const oldest = await Session.findOne({ userId: user._id }).sort({ createdAt: 1 });
-      if (oldest) await oldest.deleteOne();
+    const allSessions = await redisClient.ft.search(
+      "userIdIdx",
+      `@userId:{${user.id}}`,
+      {
+        RETURN: [],
+      }
+    );
+
+    if (allSessions.total >= 2) {
+      await redisClient.del(allSessions.documents[0].id);
     }
 
     if (!user.picture.includes("googleusercontent.com")) {
@@ -31,23 +62,25 @@ export const loginWithGoogle = async (req, res, next) => {
       await user.save();
     }
 
-    const newSession = await Session.create({
+    const sessionId = crypto.randomUUID();
+    const redisKey = `session:${sessionId}`;
+    await redisClient.json.set(redisKey, "$", {
       userId: user._id,
       rootDirId: user.rootDirId,
-      expiresAt: new Date(Date.now() + SESSION_EXPIRY_MS),
     });
 
-    res.cookie("sid", newSession._id.toString(), {
+    const sessionExpiryTime = 60 * 1000 * 60 * 24 * 7;
+    await redisClient.expire(redisKey, sessionExpiryTime / 1000);
+
+    res.cookie("sid", sessionId, {
       httpOnly: true,
       signed: true,
-      sameSite: "lax",
-      maxAge: SESSION_EXPIRY_MS,
+      maxAge: sessionExpiryTime,
     });
 
     return res.json({ message: "logged in" });
   }
 
-  // New user — create account and session in a transaction
   const mongooseSession = await mongoose.startSession();
 
   try {
@@ -63,7 +96,7 @@ export const loginWithGoogle = async (req, res, next) => {
         parentDirId: null,
         userId,
       },
-      { session: mongooseSession }
+      { mongooseSession }
     );
 
     await User.insertOne(
@@ -74,29 +107,29 @@ export const loginWithGoogle = async (req, res, next) => {
         picture,
         rootDirId,
       },
-      { session: mongooseSession }
+      { mongooseSession }
     );
 
-    await mongooseSession.commitTransaction();
-
-    const newSession = await Session.create({
-      userId,
-      rootDirId,
-      expiresAt: new Date(Date.now() + SESSION_EXPIRY_MS),
+    const sessionId = crypto.randomUUID();
+    const redisKey = `session:${sessionId}`;
+    await redisClient.json.set(redisKey, "$", {
+      userId: userId,
+      rootDirId: rootDirId,
     });
 
-    res.cookie("sid", newSession._id.toString(), {
+    const sessionExpiryTime = 60 * 1000 * 60 * 24 * 7;
+    await redisClient.expire(redisKey, sessionExpiryTime / 1000);
+
+    res.cookie("sid", sessionId, {
       httpOnly: true,
       signed: true,
-      sameSite: "lax",
-      maxAge: SESSION_EXPIRY_MS,
+      maxAge: sessionExpiryTime,
     });
 
+    mongooseSession.commitTransaction();
     res.status(201).json({ message: "account created and logged in" });
   } catch (err) {
-    await mongooseSession.abortTransaction();
+    mongooseSession.abortTransaction();
     next(err);
-  } finally {
-    mongooseSession.endSession();
   }
 };
