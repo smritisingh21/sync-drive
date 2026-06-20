@@ -1,23 +1,23 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
-import { loginWithGoogle, sendOtp, verifyOtp } from "./api/authApi";
+import { loginWithGoogle } from "./api/authApi";
 import { registerUser } from "./api/userApi";
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    name: "ProCodrr",
-    email: "procodrr@gmail.com",
-    password: "abcd",
+    name: "User0",
+    email: "user0@gmail.com",
+    password: "1234",
   });
   const [serverError, setServerError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
-  const [otpError, setOtpError] = useState("");
-  const [isSending, setIsSending] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
+  // const [otp, setOtp] = useState("");
+  // const [otpSent, setOtpSent] = useState(false);
+  // const [otpVerified, setOtpVerified] = useState(false);
+  // const [otpError, setOtpError] = useState("");
+  // const [isSending, setIsSending] = useState(false);
+  // const [isVerifying, setIsVerifying] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
   const navigate = useNavigate();
@@ -33,48 +33,48 @@ const Register = () => {
     const { name, value } = e.target;
     if (name === "email") {
       setServerError("");
-      setOtpError("");
-      setOtpSent(false);
-      setOtpVerified(false);
+      // setOtpError("");
+      // setOtpSent(false);
+      // setOtpVerified(false);
       setCountdown(0);
     }
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSendOtp = async () => {
-    if (!formData.email) return setOtpError("Please enter your email first.");
-    try {
-      setIsSending(true);
-      await sendOtp(formData.email);
-      setOtpSent(true);
-      setCountdown(60);
-      setOtpError("");
-    } catch (err) {
-      setOtpError(err.response?.data?.error || "Failed to send OTP.");
-    } finally {
-      setIsSending(false);
-    }
-  };
+  // const handleSendOtp = async () => {
+  //   if (!formData.email) return setOtpError("Please enter your email first.");
+  //   try {
+  //     setIsSending(true);
+  //     await sendOtp(formData.email);
+  //     // setOtpSent(true);
+  //     setCountdown(60);
+  //     setOtpError("");
+  //   } catch (err) {
+  //     setOtpError(err.response?.data?.error || "Failed to send OTP.");
+  //   } finally {
+  //     setIsSending(false);
+  //   }
+  // };
 
-  const handleVerifyOtp = async () => {
-    if (!otp) return setOtpError("Please enter OTP.");
-    try {
-      setIsVerifying(true);
-      await verifyOtp(formData.email, otp);
-      setOtpVerified(true);
-      setOtpError("");
-    } catch (err) {
-      setOtpError(err.response?.data?.error || "Invalid or expired OTP.");
-    } finally {
-      setIsVerifying(false);
-    }
-  };
+  // const handleVerifyOtp = async () => {
+  //   if (!otp) return setOtpError("Please enter OTP.");
+  //   try {
+  //     setIsVerifying(true);
+  //     await verifyOtp(formData.email, otp);
+  //     setOtpVerified(true);
+  //     setOtpError("");
+  //   } catch (err) {
+  //     setOtpError(err.response?.data?.error || "Invalid or expired OTP.");
+  //   } finally {
+  //     setIsVerifying(false);
+  //   }
+  // };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!otpVerified) return setOtpError("Please verify your email with OTP.");
+    // if (!otpVerified) return setOtpError("Please verify your email with OTP.");
     try {
-      await registerUser({ ...formData, otp });
+      await registerUser({ ...formData});
       setIsSuccess(true);
       setTimeout(() => navigate("/"), 2000);
     } catch (err) {
@@ -109,7 +109,7 @@ const Register = () => {
               onChange={handleChange}
               className={`w-full p-2 pr-24 border ${serverError ? "border-red-500" : "border-gray-300"} rounded`}
             />
-            <button
+            {/* <button
               type="button"
               onClick={handleSendOtp}
               disabled={isSending || countdown > 0}
@@ -120,7 +120,7 @@ const Register = () => {
                 : countdown > 0
                   ? `${countdown}s`
                   : "Send OTP"}
-            </button>
+            </button> */}
           </div>
           {serverError && (
             <span className="absolute text-xs text-red-500 mt-1">
@@ -129,7 +129,7 @@ const Register = () => {
           )}
         </div>
 
-        {otpSent && (
+        {/* {otpSent && (
           <div className="relative mb-3">
             <label className="block mb-1 font-bold">Enter OTP</label>
             <div className="relative">
@@ -159,7 +159,7 @@ const Register = () => {
               </span>
             )}
           </div>
-        )}
+        )} */}
 
         <div className="relative mb-3">
           <label className="block mb-1 font-bold">Password</label>
@@ -175,8 +175,8 @@ const Register = () => {
 
         <button
           type="submit"
-          className={`bg-blue-500 text-white py-2 rounded w-full font-medium hover:opacity-90 ${!otpVerified || isSuccess ? "opacity-60 cursor-not-allowed" : ""}`}
-          disabled={!otpVerified || isSuccess}
+          className={`bg-blue-500 text-white py-2 rounded w-full font-medium hover:opacity-90 cursor-pointer ${isSuccess ? "opacity-60 cursor-not-allowed" : ""}`}
+          
         >
           {isSuccess ? "Registration Successful" : "Register"}
         </button>

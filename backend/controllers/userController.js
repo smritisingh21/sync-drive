@@ -2,7 +2,7 @@ import Directory from "../models/directoryModel.js";
 import User from "../models/userModel.js";
 import mongoose, { Types } from "mongoose";
 import Session from "../models/sessionModel.js";
-import OTP from "../models/otpModel.js";
+// import OTP from "../models/otpModel.js";
 import redisClient from "../config/redis.js";
 import { z } from "zod/v4";
 import { loginSchema, registerSchema } from "../validators/authSchema.js";
@@ -14,15 +14,13 @@ export const register = async (req, res, next) => {
     return res.status(400).json({ error: z.flattenError(error).fieldErrors });
   }
 
-  const { name, email, password, otp } = data;
-  console.log(otp);
-  const otpRecord = await OTP.findOne({ email, otp });
-
-  if (!otpRecord) {
-    return res.status(400).json({ error: "Invalid or Expired OTP!" });
-  }
-
-  await otpRecord.deleteOne();
+  const { name, email, password} = data;
+  // console.log(otp);
+  // const otpRecord = await OTP.findOne({ email, otp });
+  // if (!otpRecord) {
+  //   return res.status(400).json({ error: "Invalid or Expired OTP!" });
+  // }
+  // await otpRecord.deleteOne();
 
   const session = await mongoose.startSession();
 

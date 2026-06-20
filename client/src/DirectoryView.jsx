@@ -1,116 +1,351 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { GoogleLogin } from "@react-oauth/google";
-import { loginWithGoogle } from "./api/authApi";
-import { loginUser } from "./api/userApi";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import DirectoryHeader from "./components/DirectoryHeader";
+import CreateDirectoryModal from "./components/CreateDirectoryModal";
+import RenameModal from "./components/RenameModal";
+import DirectoryList from "./components/DirectoryList";
+import { DirectoryContext } from "./context/DirectoryContext";
 
-const Login = () => {
-  const [formData, setFormData] = useState({
-    email: "procodrr@gmail.com",
-    password: "abcd",
-  });
-  const [serverError, setServerError] = useState("");
+import {
+  getDirectoryItems,
+  createDirectory,
+  deleteDirectory,
+  renameDirectory,
+} from "./api/directoryApi";
+
+import {
+  deleteFile,
+  renameFile,
+  uploadComplete,
+  uploadInitiate,
+} from "./api/fileApi";
+import DetailsPopup from "./components/DetailsPopup";
+import ConfirmDeleteModal from "./components/ConfirmDeleteModel";
+
+function DirectoryView() {
+  const { dirId } = useParams();
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (serverError) setServerError("");
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const [directoryName, setDirectoryName] = useState("My Drive");
+  const [directoriesList, setDirectoriesList] = useState([]);
+  const [filesList, setFilesList] = useState([]);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [showCreateDirModal, setShowCreateDirModal] = useState(false);
+  const [newDirname, setNewDirname] = useState("New Folder");
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameType, setRenameType] = useState(null);
+  const [renameId, setRenameId] = useState(null);
+  const [renameValue, setRenameValue] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const fileInputRef = useRef(null);
+
+  // Single-file upload state
+  const [uploadItem, setUploadItem] = useState(null); // { id, file, name, size, progress, isUploading }
+  const xhrRef = useRef(null);
+
+  const [activeContextMenu, setActiveContextMenu] = useState(null);
+  const [detailsItem, setDetailsItem] = useState(null);
+  const [deleteItem, setDeleteItem] = useState(null);
+
+  const openDetailsPopup = (item) => setDetailsItem(item);
+  const closeDetailsPopup = () => setDetailsItem(null);
+
+  const loadDirectory = async () => {
     try {
-      const data = await loginUser(formData);
-      if (data.error) setServerError(data.error);
-      else navigate("/");
+      const data = await getDirectoryItems(dirId);
+      setDirectoryName(dirId ? data.name : "My Drive");
+      setDirectoriesList([...data.directories].reverse());
+      setFilesList([...data.files].reverse());
     } catch (err) {
-      console.error("Login error:", err);
-      setServerError(err.response?.data?.error || "Something went wrong.");
+      if (err.response?.status === 401) navigate("/login");
+      else setErrorMessage(err.response?.data?.error || err.message);
     }
   };
 
-  const hasError = Boolean(serverError);
+  useEffect(() => {
+    loadDirectory();
+    setActiveContextMenu(null);
+  }, [dirId]);
+
+  function getFileIcon(filename) {
+    const ext = filename.split(".").pop().toLowerCase();
+    switch (ext) {
+      case "pdf":
+        return "pdf";
+      case "png":
+      case "jpg":
+      case "jpeg":
+      case "gif":
+        return "image";
+      case "mp4":
+      case "mov":
+      case "avi":
+        return "video";
+      case "zip":
+      case "rar":
+      case "tar":
+      case "gz":
+        return "archive";
+      case "js":
+      case "jsx":
+      case "ts":
+      case "tsx":
+      case "html":
+      case "css":
+      case "py":
+      case "java":
+        return "code";
+      default:
+        return "alt";
+    }
+  }
+
+  function handleRowClick(type, id) {
+    if (type === "directory") navigate(`/directory/${id}`);
+    else window.location.href = `http://localhost:4000/file/${id}`;
+  }
+
+  async function handleFileSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (uploadItem?.isUploading) {
+      setErrorMessage("An upload is already in progress. Please wait.");
+      setTimeout(() => setErrorMessage(""), 3000);
+      e.target.value = "";
+      return;
+    }
+
+    const tempItem = {
+      file,
+      name: file.name,
+      size: file.size,
+      id: `temp-${Date.now()}`,
+      isUploading: true,
+      progress: 0,
+    };
+
+    try {
+      const data = await uploadInitiate({
+        name: file.name,
+        size: file.size,
+        contentType: file.type,
+        parentDirId: dirId,
+      });
+
+      const { uploadSignedUrl, fileId } = data;
+
+      // Optimistically show the file in the list
+      setFilesList((prev) => [tempItem, ...prev]);
+      setUploadItem(tempItem);
+      e.target.value = "";
+
+      startUpload({ item: tempItem, uploadUrl: uploadSignedUrl, fileId });
+    } catch (err) {
+      setErrorMessage(err.response.data.error);
+      setTimeout(() => setErrorMessage(""), 3000);
+    }
+  }
+
+  function startUpload({ item, uploadUrl, fileId }) {
+    const xhr = new XMLHttpRequest();
+    xhrRef.current = xhr;
+
+    xhr.open("PUT", uploadUrl);
+
+    xhr.upload.addEventListener("progress", (evt) => {
+      if (evt.lengthComputable) {
+        const progress = (evt.loaded / evt.total) * 100;
+        setUploadItem((prev) => (prev ? { ...prev, progress } : prev));
+      }
+    });
+
+    xhr.onload = async () => {
+      if (xhr.status === 200) {
+        const fileUploadResponse = await uploadComplete(fileId);
+        console.log(fileUploadResponse);
+      } else {
+        console.log(xhr.response);
+        console.log(xhr.responseText);
+        setErrorMessage("File not uploaded");
+        setTimeout(() => setErrorMessage(""), 3000);
+      }
+      setUploadItem(null);
+      loadDirectory();
+    };
+
+    xhr.onerror = () => {
+      setErrorMessage("Something went wrong!");
+      // Remove temp item from the list
+      setFilesList((prev) => prev.filter((f) => f.id !== item.id));
+      setUploadItem(null);
+      setTimeout(() => setErrorMessage(""), 3000);
+    };
+
+    xhr.send(item.file);
+  }
+
+  function handleCancelUpload(tempId) {
+    if (uploadItem && uploadItem.id === tempId && xhrRef.current) {
+      xhrRef.current.abort();
+    }
+    // Remove temp item and reset state
+    setFilesList((prev) => prev.filter((f) => f.id !== tempId));
+    setUploadItem(null);
+  }
+
+  async function confirmDelete(item) {
+    try {
+      if (item.isDirectory) await deleteDirectory(item.id);
+      else await deleteFile(item.id);
+      setDeleteItem(null);
+      loadDirectory();
+    } catch (err) {
+      setErrorMessage(err.response?.data?.error || err.message);
+    }
+  }
+
+  async function handleCreateDirectory(e) {
+    e.preventDefault();
+    try {
+      await createDirectory(dirId, newDirname);
+      setNewDirname("New Folder");
+      setShowCreateDirModal(false);
+      loadDirectory();
+    } catch (err) {
+      setErrorMessage(err.response?.data?.error || err.message);
+    }
+  }
+
+  function openRenameModal(type, id, currentName) {
+    setRenameType(type);
+    setRenameId(id);
+    setRenameValue(currentName);
+    setShowRenameModal(true);
+  }
+
+  async function handleRenameSubmit(e) {
+    e.preventDefault();
+    try {
+      if (renameType === "file") await renameFile(renameId, renameValue);
+      else await renameDirectory(renameId, renameValue);
+
+      setShowRenameModal(false);
+      setRenameValue("");
+      setRenameType(null);
+      setRenameId(null);
+      loadDirectory();
+    } catch (err) {
+      setErrorMessage(err.response?.data?.error || err.message);
+    }
+  }
+
+  useEffect(() => {
+    const handleDocumentClick = () => setActiveContextMenu(null);
+    document.addEventListener("click", handleDocumentClick);
+    return () => document.removeEventListener("click", handleDocumentClick);
+  }, []);
+
+  const combinedItems = [
+    ...directoriesList.map((d) => ({ ...d, isDirectory: true })),
+    ...filesList.map((f) => ({ ...f, isDirectory: false })),
+  ];
+
+  // For compatibility with children expecting these values:
+  const isUploading = !!uploadItem?.isUploading;
+  const progressMap = uploadItem
+    ? { [uploadItem.id]: uploadItem.progress || 0 }
+    : {};
 
   return (
-    <div className="max-w-md mx-auto p-5">
-      <h2 className="text-center text-2xl font-semibold mb-3">Login</h2>
-      <form className="flex flex-col" onSubmit={handleSubmit}>
-        <div className="relative mb-3">
-          <label htmlFor="email" className="block mb-1 font-bold">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            placeholder="Enter your email"
-            value={formData.email}
-            onChange={handleChange}
-            className={`w-full p-2 border ${hasError ? "border-red-500" : "border-gray-300"} rounded`}
-          />
-        </div>
-
-        <div className="relative mb-3">
-          <label htmlFor="password" className="block mb-1 font-bold">
-            Password
-          </label>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            required
-            placeholder="Enter your password"
-            value={formData.password}
-            onChange={handleChange}
-            className={`w-full p-2 border ${hasError ? "border-red-500" : "border-gray-300"} rounded`}
-          />
-          {serverError && (
-            <span className="absolute top-full left-0 text-red-500 text-xs mt-1">
-              {serverError}
-            </span>
+    <DirectoryContext.Provider
+      value={{
+        handleRowClick,
+        activeContextMenu,
+        handleContextMenu: (e, id) => {
+          e.stopPropagation();
+          e.preventDefault();
+          setActiveContextMenu((prev) => (prev === id ? null : id));
+        },
+        getFileIcon,
+        isUploading,
+        progressMap,
+        handleCancelUpload,
+        setDeleteItem,
+        openRenameModal,
+        openDetailsPopup,
+      }}
+    >
+      <div className="mx-2 md:mx-4">
+        {errorMessage &&
+          errorMessage !==
+            "Directory not found or you do not have access to it!" && (
+            <div className="error-message text-red-500 text-xs text-center mt-1">
+              {errorMessage}
+            </div>
           )}
-        </div>
 
-        <button
-          type="submit"
-          className="bg-blue-500 text-white py-2 rounded w-full font-medium hover:opacity-90"
-        >
-          Login
-        </button>
-      </form>
-
-      <p className="text-center mt-3">
-        Don't have an account?{" "}
-        <Link className="text-blue-600 hover:underline" to="/register">
-          Register
-        </Link>
-      </p>
-
-      <div className="relative text-center my-3">
-        <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-[2px] bg-gray-300"></div>
-        <span className="relative bg-white px-2 text-sm text-gray-600">Or</span>
-      </div>
-
-      <div className="flex justify-center">
-        <GoogleLogin
-          onSuccess={async (credentialResponse) => {
-            try {
-              const data = await loginWithGoogle(credentialResponse.credential);
-              if (!data.error) navigate("/");
-            } catch (err) {
-              console.error("Google login failed:", err);
-            }
-          }}
-          onError={() => console.log("Login Failed")}
-          theme="filled_blue"
-          text="continue_with"
-          useOneTap
+        <DirectoryHeader
+          directoryName={directoryName}
+          onCreateFolderClick={() => setShowCreateDirModal(true)}
+          onUploadFilesClick={() => fileInputRef.current.click()}
+          fileInputRef={fileInputRef}
+          handleFileSelect={handleFileSelect}
+          disabled={
+            errorMessage ===
+            "Directory not found or you do not have access to it!"
+          }
         />
-      </div>
-    </div>
-  );
-};
 
-export default Login;
+        {showCreateDirModal && (
+          <CreateDirectoryModal
+            newDirname={newDirname}
+            setNewDirname={setNewDirname}
+            onClose={() => setShowCreateDirModal(false)}
+            onCreateDirectory={handleCreateDirectory}
+          />
+        )}
+
+        {showRenameModal && (
+          <RenameModal
+            renameType={renameType}
+            renameValue={renameValue}
+            setRenameValue={setRenameValue}
+            onClose={() => setShowRenameModal(false)}
+            onRenameSubmit={handleRenameSubmit}
+          />
+        )}
+
+        {detailsItem && (
+          <DetailsPopup item={detailsItem} onClose={closeDetailsPopup} />
+        )}
+
+        {combinedItems.length === 0 ? (
+          errorMessage ===
+          "Directory not found or you do not have access to it!" ? (
+            <p className="text-center text-gray-600 mt-4 italic">
+              Directory not found or you do not have access to it!
+            </p>
+          ) : (
+            <p className="text-center text-gray-600 mt-4 italic">
+              This folder is empty. Upload a file or create a folder to see some
+              data.
+            </p>
+          )
+        ) : (
+          <DirectoryList items={combinedItems} />
+        )}
+
+        {deleteItem && (
+          <ConfirmDeleteModal
+            item={deleteItem}
+            onConfirm={confirmDelete}
+            onCancel={() => setDeleteItem(null)}
+          />
+        )}
+      </div>
+    </DirectoryContext.Provider>
+  );
+}
+
+export default DirectoryView;

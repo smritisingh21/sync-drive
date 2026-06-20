@@ -1,37 +1,37 @@
 import mongoose, { Types } from "mongoose";
-import OTP from "../models/otpModel.js";
+// import OTP from "../models/otpModel.js";
 import User from "../models/userModel.js";
 import Directory from "../models/directoryModel.js";
 import { verifyIdToken } from "../services/googleAuthService.js";
-import { sendOtpService } from "../services/sendOtpService.js";
+// import { sendOtpService } from "../services/sendOtpService.js";
 import redisClient from "../config/redis.js";
-import { otpSchema } from "../validators/authSchema.js";
+// import { otpSchema } from "../validators/authSchema.js";
 
-export const sendOtp = async (req, res, next) => {
-  const { email } = req.body;
-  const resData = await sendOtpService(email);
-  res.status(201).json(resData);
-};
+// export const sendOtp = async (req, res, next) => {
+//   const { email } = req.body;
+//   const resData = await sendOtpService(email);
+//   res.status(201).json(resData);
+// };
 
-export const verifyOtp = async (req, res, next) => {
-  const { success, data } = otpSchema.safeParse(req.body);
+// export const verifyOtp = async (req, res, next) => {
+//   const { success, data } = otpSchema.safeParse(req.body);
 
-  console.log(req.body);
-  console.log(data);
+//   console.log(req.body);
+//   console.log(data);
 
-  if (!success) {
-    return res.status(400).json({ error: "Invalid OTP" });
-  }
+//   if (!success) {
+//     return res.status(400).json({ error: "Invalid OTP" });
+//   }
 
-  const { email, otp } = data;
-  const otpRecord = await OTP.findOne({ email, otp });
+//   const { email, otp } = data;
+//   const otpRecord = await OTP.findOne({ email, otp });
 
-  if (!otpRecord) {
-    return res.status(400).json({ error: "Invalid or Expired OTP!" });
-  }
+//   if (!otpRecord) {
+//     return res.status(400).json({ error: "Invalid or Expired OTP!" });
+//   }
 
-  return res.json({ message: "OTP Verified!" });
-};
+//   return res.json({ message: "OTP Verified!" });
+// };
 
 export const loginWithGoogle = async (req, res, next) => {
   const { idToken } = req.body;
