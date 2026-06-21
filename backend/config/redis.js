@@ -2,13 +2,6 @@ import dotenv from "dotenv";
 dotenv.config()
 import { createClient } from 'redis';
 
-
-console.log({
-  REDIS_HOST: process.env.REDIS_HOST,
-  REDIS_PORT: process.env.REDIS_PORT,
-  REDIS_USER: process.env.REDIS_USER,
-  REDIS_PWD: process.env.REDIS_PWD ? "loaded" : "missing"
-});
 const redisClient = createClient({
     username: process.env.REDIS_USER,
     password: process.env.REDIS_PWD,
@@ -22,5 +15,6 @@ redisClient.on('error', err =>
      console.log('Redis Client Error', err));
 
 await redisClient.connect();
+// (Removed FT index creation - using simple JSON queries instead)
 
 export default redisClient;

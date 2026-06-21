@@ -2,6 +2,7 @@ import Directory from "../models/directoryModel.js";
 import User from "../models/userModel.js";
 import mongoose, { Types } from "mongoose";
 import Session from "../models/sessionModel.js";
+import crypto from "crypto";
 // import OTP from "../models/otpModel.js";
 import redisClient from "../config/redis.js";
 import { z } from "zod/v4";
@@ -95,23 +96,29 @@ export const login = async (req, res, next) => {
     return res.status(404).json({ error: "Invalid Credentials" });
   }
 
-  const allSessions = await redisClient.ft.search(
-    "userIdIdx",
-    `@userId:{${user.id}}`,
-    {
-      RETURN: [],
+  // collect existing sessions for this user via simple JSON queries
+  const keys = await redisClient.keys("session:*");
+  const userSessions = [];
+  for (const key of keys) {
+    const s = await redisClient.json.get(key, "$");
+    const sessionObj = Array.isArray(s) ? s[0] : s;
+    if (sessionObj && sessionObj.userId === user._id.toString()) {
+      userSessions.push({ key });
     }
-  );
-
-  if (allSessions.total >= 2) {
-    await redisClient.del(allSessions.documents[0].id);
   }
+
+  if (userSessions.length >= 2) {
+    await redisClient.del(userSessions[0].key);
+  }
+
+  // create Mongo session record for server-side checks
+  await Session.create({ userId: user._id });
 
   const sessionId = crypto.randomUUID();
   const redisKey = `session:${sessionId}`;
   await redisClient.json.set(redisKey, "$", {
-    userId: user._id,
-    rootDirId: user.rootDirId,
+    userId: user._id.toString(),
+    rootDirId: user.rootDirId.toString(),
   });
 
   const sessionExpiryTime = 60 * 1000 * 60 * 24 * 7;
@@ -156,7 +163,12 @@ export const getCurrentUser = async (req, res) => {
 
 export const logout = async (req, res) => {
   const { sid } = req.signedCookies;
+  const session = await redisClient.json.get(`session:${sid}`);
   await redisClient.del(`session:${sid}`);
+  // clean up mongo sessions for this user
+  if (session && session.userId) {
+    await Session.deleteMany({ userId: session.userId });
+  }
   res.clearCookie("sid");
   res.status(204).end();
 };
@@ -173,14 +185,23 @@ export const logoutById = async (req, res, next) => {
 export const logoutAll = async (req, res) => {
   const { sid } = req.signedCookies;
   const session = await redisClient.json.get(`session:${sid}`);
-  const allSessions = await redisClient.ft.search(
-    "userIdIdx",
-    `@userId:{${session.userId}}`,
-    {
-      RETURN: [],
+  // find all redis sessions for this user and delete them
+  const keys = await redisClient.keys("session:*");
+  const userSessions = [];
+  for (const key of keys) {
+    const s = await redisClient.json.get(key, "$");
+    const sessionObj = Array.isArray(s) ? s[0] : s;
+    if (sessionObj && sessionObj.userId === session.userId) {
+      userSessions.push(key);
     }
-  );
-  await redisClient.del(allSessions.documents.map(({ id }) => id));
+  }
+  if (userSessions.length) {
+    await redisClient.del(userSessions);
+  }
+  // remove mongo session records for this user
+  if (session && session.userId) {
+    await Session.deleteMany({ userId: session.userId });
+  }
   res.status(204).end();
 };
 

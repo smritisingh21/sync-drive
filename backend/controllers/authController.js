@@ -1,11 +1,11 @@
-import mongoose, { Types } from "mongoose";
 // import OTP from "../models/otpModel.js";
+// import { sendOtpService } from "../services/sendOtpService.js";
+// import { otpSchema } from "../validators/authSchema.js";
+import mongoose, { Types } from "mongoose";
 import User from "../models/userModel.js";
 import Directory from "../models/directoryModel.js";
 import { verifyIdToken } from "../services/googleAuthService.js";
-// import { sendOtpService } from "../services/sendOtpService.js";
 import redisClient from "../config/redis.js";
-// import { otpSchema } from "../validators/authSchema.js";
 
 // export const sendOtp = async (req, res, next) => {
 //   const { email } = req.body;
