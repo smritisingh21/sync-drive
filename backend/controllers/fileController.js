@@ -130,11 +130,16 @@ export const uploadInitiate = async (req, res) => {
       userId: req.user._id,
       isUploading: true,
     });
+
+
     const uploadSignedUrl = await createUploadSignedUrl({
       key: `${insertedFile.id}${extension}`,
       contentType: req.body.contentType,
     });
+    
+    console.log("Uploading in S3...fileController");
     res.json({ uploadSignedUrl, fileId: insertedFile.id });
+
   } catch (err) {
     console.log(err);
   }

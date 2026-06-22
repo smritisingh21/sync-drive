@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import {
   GetObjectCommand,
   HeadObjectCommand,
@@ -6,11 +8,23 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-export const s3Client = new S3Client({ profile: "nodejs" });
+console.log({
+  region: process.env.AWS_REGION,
+  keyId: process.env.AWS_ACCESS_KEY_ID,
+  secretKey:process.env.AWS_SECRET_KEY,
+});
+
+export const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_KEY,
+  },
+});
 
 export const createUploadSignedUrl = async ({ key, contentType }) => {
   const command = new PutObjectCommand({
-    Bucket: "procodrr-storage-app",
+    Bucket: "sync-drive-storage",
     Key: key,
     ContentType: contentType,
   });
@@ -19,17 +33,14 @@ export const createUploadSignedUrl = async ({ key, contentType }) => {
     expiresIn: 300,
     signableHeaders: new Set(["content-type"]),
   });
+  console.log("Uploading in S3...");
 
   return url;
 };
 
-export const createGetSignedUrl = async ({
-  key,
-  download = false,
-  filename,
-}) => {
+export const createGetSignedUrl = async ({key, download = false, filename, }) => {
   const command = new GetObjectCommand({
-    Bucket: "procodrr-storage-app",
+    Bucket: "sync-drive-storage",
     Key: key,
     ResponseContentDisposition: `${download ? "attachment" : "inline"}; filename=${encodeURIComponent(filename)}`,
   });
@@ -43,7 +54,7 @@ export const createGetSignedUrl = async ({
 
 export const getS3FileMetaData = async (key) => {
   const command = new HeadObjectCommand({
-    Bucket: "procodrr-storage-app",
+    Bucket: "sync-drive-storage",
     Key: key,
   });
 

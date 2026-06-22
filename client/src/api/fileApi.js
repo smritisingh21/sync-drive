@@ -14,6 +14,7 @@ export const renameFile = async (id, newFilename) => {
 
 export const uploadInitiate = async (fileData) => {
   const { data } = await axiosWithCreds.post("/file/upload/initiate", fileData);
+  console.log("Uploading in S3...fileAPI");
   return data;
 };
 
