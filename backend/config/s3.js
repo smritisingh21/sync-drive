@@ -1,18 +1,16 @@
 import dotenv from "dotenv";
 dotenv.config();
 import {
+ DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client,
+  
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-console.log({
-  region: process.env.AWS_REGION,
-  keyId: process.env.AWS_ACCESS_KEY_ID,
-  secretKey:process.env.AWS_SECRET_KEY,
-});
 
 export const s3Client = new S3Client({
   region: process.env.AWS_REGION,
@@ -56,6 +54,26 @@ export const getS3FileMetaData = async (key) => {
   const command = new HeadObjectCommand({
     Bucket: "sync-drive-storage",
     Key: key,
+  });
+
+  return await s3Client.send(command);
+};
+export const deleteS3File = async (key) => {
+  const command = new DeleteObjectCommand({
+    Bucket: "procodrr-storage-app",
+    Key: key,
+  });
+
+  return await s3Client.send(command);
+};
+
+export const deleteS3Files = async (keys) => {
+  const command = new DeleteObjectsCommand({
+    Bucket: "sync-drive-storage",
+    Delete: {
+      Objects: keys,
+      Quiet: false, // set true to skip individual delete responses
+    },
   });
 
   return await s3Client.send(command);

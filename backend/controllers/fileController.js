@@ -7,6 +7,7 @@ import User from "../models/userModel.js";
 import {
   createGetSignedUrl,
   createUploadSignedUrl,
+  deleteS3File,
   getS3FileMetaData,
 } from "../config/s3.js";
 
@@ -88,7 +89,7 @@ export const deleteFile = async (req, res, next) => {
   try {
     await file.deleteOne();
     await updateDirectoriesSize(file.parentDirId, -file.size);
-    await rm(`./storage/${id}${file.extension}`);
+    await deleteS3File(`${file.id}${file.extension}`);
     return res.status(200).json({ message: "File Deleted Successfully" });
   } catch (err) {
     next(err);
@@ -130,16 +131,11 @@ export const uploadInitiate = async (req, res) => {
       userId: req.user._id,
       isUploading: true,
     });
-
-
     const uploadSignedUrl = await createUploadSignedUrl({
       key: `${insertedFile.id}${extension}`,
       contentType: req.body.contentType,
     });
-    
-    console.log("Uploading in S3...fileController");
     res.json({ uploadSignedUrl, fileId: insertedFile.id });
-
   } catch (err) {
     console.log(err);
   }
@@ -150,11 +146,11 @@ export const uploadComplete = async (req, res, next) => {
   if (!file) {
     return res.status(404).json({ error: "File not found in our records" });
   }
-  
+
   try {
     const fileData = await getS3FileMetaData(`${file.id}${file.extension}`);
     if (fileData.ContentLength !== file.size) {
-      await file.deleteOne()
+      await file.deleteOne();
       return res.status(400).json({ error: "File size does not match." });
     }
     file.isUploading = false;
@@ -162,7 +158,7 @@ export const uploadComplete = async (req, res, next) => {
     await updateDirectoriesSize(file.parentDirId, file.size);
     res.json({ message: "Upload completed" });
   } catch (err) {
-    await file.deleteOne()
+    await file.deleteOne();
     return res
       .status(404)
       .json({ error: "File was could not be uploaded properly." });
