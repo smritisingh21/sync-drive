@@ -95,9 +95,12 @@ function DirectoryView() {
     }
   }
 
+  const backendBaseUrl =
+    import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:4000";
+
   function handleRowClick(type, id) {
     if (type === "directory") navigate(`/directory/${id}`);
-    else window.location.href = `http://localhost:4000/file/${id}`;
+    else window.open(`${backendBaseUrl}/file/${id}`, "_blank");
   }
 
   async function handleFileSelect(e) {
@@ -265,6 +268,7 @@ function DirectoryView() {
         setDeleteItem,
         openRenameModal,
         openDetailsPopup,
+        BASE_URL: backendBaseUrl,
       }}
     >
       {/* Page wrapper — Clean Pinterest off-white background */}

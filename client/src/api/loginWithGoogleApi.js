@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:4000";
+import { axiosWithCreds } from "./axiosInstances";
 
 export const loginWithGoogle = async (idToken) => {
   const { data } = await axiosWithCreds.post("/auth/google", { idToken });

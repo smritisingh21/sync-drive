@@ -42,12 +42,15 @@ function ContextMenu({ item, isUploadingItem }) {
     );
   }
 
+  const apiBaseUrl =
+    BASE_URL || import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:4000";
+
   return (
     <div className={menuClass}>
       <div
         className={itemClass}
         onClick={() =>
-          (window.location.href = `http://localhost:4000/file/${item.id}?action=download`)
+          (window.location.href = `${apiBaseUrl}/file/${item.id}?action=download`)
         }
       >
         Download
