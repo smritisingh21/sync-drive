@@ -1,14 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
-import {
- DeleteObjectCommand,
-  DeleteObjectsCommand,
-  GetObjectCommand,
-  HeadObjectCommand,
-  PutObjectCommand,
-  S3Client,
-  
-} from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, DeleteObjectsCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client, } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 
@@ -22,7 +14,7 @@ export const s3Client = new S3Client({
 
 export const createUploadSignedUrl = async ({ key, contentType }) => {
   const command = new PutObjectCommand({
-    Bucket: "sync-drive-storage",
+    Bucket: "sync-drive-bucket",
     Key: key,
     ContentType: contentType,
   });
@@ -36,9 +28,9 @@ export const createUploadSignedUrl = async ({ key, contentType }) => {
   return url;
 };
 
-export const createGetSignedUrl = async ({key, download = false, filename, }) => {
+export const createGetSignedUrl = async ({ key, download = false, filename, }) => {
   const command = new GetObjectCommand({
-    Bucket: "sync-drive-storage",
+    Bucket: "sync-drive-bucket",
     Key: key,
     ResponseContentDisposition: `${download ? "attachment" : "inline"}; filename=${encodeURIComponent(filename)}`,
   });
@@ -52,7 +44,7 @@ export const createGetSignedUrl = async ({key, download = false, filename, }) =>
 
 export const getS3FileMetaData = async (key) => {
   const command = new HeadObjectCommand({
-    Bucket: "sync-drive-storage",
+    Bucket: "sync-drive-bucket",
     Key: key,
   });
 
@@ -60,7 +52,7 @@ export const getS3FileMetaData = async (key) => {
 };
 export const deleteS3File = async (key) => {
   const command = new DeleteObjectCommand({
-    Bucket: "procodrr-storage-app",
+    Bucket: "sync-drive-bucket",
     Key: key,
   });
 
@@ -69,7 +61,7 @@ export const deleteS3File = async (key) => {
 
 export const deleteS3Files = async (keys) => {
   const command = new DeleteObjectsCommand({
-    Bucket: "sync-drive-storage",
+    Bucket: "sync-drive-bucket",
     Delete: {
       Objects: keys,
       Quiet: false, // set true to skip individual delete responses

@@ -12,9 +12,11 @@ const redisClient = createClient({
 });
 
 redisClient.on('error', err =>
-     console.log('Redis Client Error', err));
+    console.log('Redis Client Error', err));
 
 await redisClient.connect();
 // (Removed FT index creation - using simple JSON queries instead)
-
+console.log("Connected to redis")
 export default redisClient;
+
+
