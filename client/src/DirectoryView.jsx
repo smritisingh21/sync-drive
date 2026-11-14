@@ -4,6 +4,7 @@ import DirectoryHeader from "./components/DirectoryHeader";
 import CreateDirectoryModal from "./components/CreateDirectoryModal";
 import RenameModal from "./components/RenameModal";
 import DirectoryList from "./components/DirectoryList";
+import ContextMenu from "./components/ContextMenu";
 import { DirectoryContext } from "./context/DirectoryContext";
 import { BsGrid } from "react-icons/bs";
 import { BsList } from "react-icons/bs";
@@ -342,12 +343,22 @@ function DirectoryView() {
                 return (
                   <div
                     key={item.id}
-                    onClick={() => handleRowClick(item.isDirectory ? "directory" : "file", item.id)}
-                    className="break-inside-avoid bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer border border-gray-100 relative"
+                    onClick={() =>
+                      !(activeContextMenu || isUploading) &&
+                      handleRowClick(item.isDirectory ? "directory" : "file", item.id)
+                    }
+                    onContextMenu={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      setActiveContextMenu((prev) => (prev === item.id ? null : item.id));
+                    }}
+                    className={`break-inside-avoid bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer border border-gray-100 relative ${
+                      activeContextMenu === item.id ? "overflow-visible z-30" : "overflow-hidden"
+                    }`}
                   >
                     {/* Fake Visual Dynamic Height Cover Canvas to copy Pinterest feel */}
                     <div
-                      className={`w-full flex items-center justify-center transition-colors ${
+                      className={`w-full rounded-t-2xl flex items-center justify-center transition-colors ${
                         item.isDirectory ? "h-32 bg-[#cded9e]/30" : "h-44 bg-gray-100/70"
                       }`}
                     >
@@ -357,7 +368,7 @@ function DirectoryView() {
                     </div>
 
                     {/* Meta information row strip underneath layout image card */}
-                    <div className="p-3 flex justify-between items-center">
+                    <div className="p-3 flex justify-between items-center relative">
                       <div className="truncate pr-2">
                         <p className="text-sm font-semibold text-gray-800 truncate">
                           {item.name}
@@ -368,16 +379,27 @@ function DirectoryView() {
                       </div>
                       
                       {/* Context Menu Button Interaction Hook Toggle area */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          setActiveContextMenu(activeContextMenu === item.id ? null : item.id);
-                        }}
-                        className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 font-bold text-sm"
-                      >
-                        •••
-                      </button>
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setActiveContextMenu((prev) => (prev === item.id ? null : item.id));
+                          }}
+                          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 font-bold text-sm"
+                        >
+                          •••
+                        </button>
+
+                        {activeContextMenu === item.id && (
+                          <div className="absolute right-0 top-8 z-50">
+                            <ContextMenu
+                              item={item}
+                              isUploadingItem={String(item.id).startsWith("temp-")}
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
