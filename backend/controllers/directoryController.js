@@ -2,6 +2,9 @@ import { rm } from "fs/promises";
 import Directory from "../models/directoryModel.js";
 import File from "../models/fileModel.js";
 import { updateDirectoriesSize } from "./fileController.js";
+import { createGetSignedUrl } from "../config/s3.js";
+
+const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"];
 
 export const getDirectory = async (req, res) => {
   const user = req.user;
@@ -18,9 +21,34 @@ export const getDirectory = async (req, res) => {
 
   const files = await File.find({ parentDirId: directoryData._id }).lean();
   const directories = await Directory.find({ parentDirId: _id }).lean();
+
+  const filesWithUrls = await Promise.all(
+    files.map(async (file) => {
+      let url = null;
+      if (
+        IMAGE_EXTENSIONS.includes(file.extension?.toLowerCase()) &&
+        !file.isUploading
+      ) {
+        try {
+          url = await createGetSignedUrl({
+            key: `${file._id}${file.extension}`,
+            filename: file.name,
+          });
+        } catch (e) {
+          console.error("Error generating thumbnail signed URL:", e.message);
+        }
+      }
+      return {
+        ...file,
+        id: file._id,
+        url,
+      };
+    })
+  );
+
   return res.status(200).json({
     ...directoryData,
-    files: files.map((dir) => ({ ...dir, id: dir._id })),
+    files: filesWithUrls,
     directories: directories.map((dir) => ({ ...dir, id: dir._id })),
   });
 };

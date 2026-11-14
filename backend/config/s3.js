@@ -28,7 +28,7 @@ export const createUploadSignedUrl = async ({ key, contentType }) => {
   return url;
 };
 
-export const createGetSignedUrl = async ({ key, download = false, filename, }) => {
+export const createGetSignedUrl = async ({ key, download = false, filename, expiresIn = 3600 }) => {
   const command = new GetObjectCommand({
     Bucket: "sync-drive-bucket",
     Key: key,
@@ -36,7 +36,7 @@ export const createGetSignedUrl = async ({ key, download = false, filename, }) =
   });
 
   const url = await getSignedUrl(s3Client, command, {
-    expiresIn: 300,
+    expiresIn,
   });
 
   return url;

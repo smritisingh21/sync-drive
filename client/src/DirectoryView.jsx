@@ -118,6 +118,7 @@ function DirectoryView() {
       id: `temp-${Date.now()}`,
       isUploading: true,
       progress: 0,
+      url: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
     };
 
     try {
@@ -356,15 +357,53 @@ function DirectoryView() {
                       activeContextMenu === item.id ? "overflow-visible z-30" : "overflow-hidden"
                     }`}
                   >
-                    {/* Fake Visual Dynamic Height Cover Canvas to copy Pinterest feel */}
+                    {/* Thumbnail or Icon Cover Canvas */}
                     <div
-                      className={`w-full rounded-t-2xl flex items-center justify-center transition-colors ${
-                        item.isDirectory ? "h-32 bg-[#cded9e]/30" : "h-44 bg-gray-100/70"
+                      className={`w-full rounded-t-2xl flex items-center justify-center overflow-hidden transition-colors ${
+                        item.isDirectory
+                          ? "h-32 bg-[#cded9e]/30"
+                          : iconType === "image"
+                          ? "h-48 bg-gray-100 relative"
+                          : "h-44 bg-gray-100/70"
                       }`}
                     >
-                      <span className="text-4xl group-hover:scale-110 transition-transform duration-200">
-                        {item.isDirectory ? "📁" : iconType === "image" ? "🖼️" : "📄"}
-                      </span>
+                      {!item.isDirectory && iconType === "image" ? (
+                        <div className="w-full h-full relative flex items-center justify-center bg-gray-100">
+                          <img
+                            src={
+                              item.url ||
+                              (item.file
+                                ? URL.createObjectURL(item.file)
+                                : `${import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:4000"}/file/${item.id}`)
+                            }
+                            alt={item.name}
+                            loading="lazy"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                              const fallback = e.currentTarget.parentElement?.querySelector(".fallback-icon");
+                              if (fallback) fallback.classList.remove("hidden");
+                            }}
+                          />
+                          <div className="fallback-icon hidden w-full h-full items-center justify-center">
+                            <span className="text-4xl">🖼️</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-4xl group-hover:scale-110 transition-transform duration-200">
+                          {item.isDirectory
+                            ? "📁"
+                            : iconType === "pdf"
+                            ? "📕"
+                            : iconType === "video"
+                            ? "🎬"
+                            : iconType === "archive"
+                            ? "📦"
+                            : iconType === "code"
+                            ? "💻"
+                            : "📄"}
+                        </span>
+                      )}
                     </div>
 
                     {/* Meta information row strip underneath layout image card */}
