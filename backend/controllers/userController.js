@@ -127,7 +127,8 @@ export const login = async (req, res, next) => {
   res.cookie("sid", sessionId, {
     httpOnly: true,
     signed: true,
-    sameSite: "lax",
+    sameSite: "none",
+    secure: true,
     maxAge: sessionExpiryTime,
   });
   res.json({ message: "logged in" });
@@ -169,7 +170,10 @@ export const logout = async (req, res) => {
   if (session && session.userId) {
     await Session.deleteMany({ userId: session.userId });
   }
-  res.clearCookie("sid");
+  res.clearCookie("sid", {
+    sameSite: "none",
+    secure: true,
+  });
   res.status(204).end();
 };
 

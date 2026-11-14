@@ -4,14 +4,14 @@ export default async function checkAuth(req, res, next) {
   const { sid } = req.signedCookies;
 
   if (!sid) {
-    res.clearCookie("sid");
+    res.clearCookie("sid", { sameSite: "none", secure: true });
     return res.status(401).json({ error: "1 Not logged in!" });
   }
 
   const session = await redisClient.json.get(`session:${sid}`);
 
   if (!session) {
-    res.clearCookie("sid");
+    res.clearCookie("sid", { sameSite: "none", secure: true });
     return res.status(401).json({ error: "2 Not logged in!" });
   }
 

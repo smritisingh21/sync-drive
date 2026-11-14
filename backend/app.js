@@ -20,18 +20,11 @@ app.use(cookieParser(process.env.SESSION_SECRET));
 app.use(express.json());
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow localhost, configured FRONTEND_URL, or any Vercel deployment preview
-      if (
-        !origin ||
-        origin === "http://localhost:5173" ||
-        origin === process.env.FRONTEND_URL ||
-        origin.endsWith(".vercel.app")
-      ) {
-        return callback(null, true);
-      }
-      callback(new Error("Not allowed by CORS"));
-    },
+    origin: [
+      "http://localhost:5173",
+      process.env.FRONTEND_URL,
+      /\.vercel\.app$/,
+    ].filter(Boolean),
     credentials: true,
   })
 );
