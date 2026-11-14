@@ -1,9 +1,21 @@
-# Ignore node modules
+# Ignore all node_modules in any folder
+**/node_modules/
 node_modules/
-# Ignore environment files
-.env
 
-# Ignore log files
+# Build outputs
+dist/
+**/dist/
+
+# Environment files
+.env
+.env.*
+*.env
+
+# System files
+.DS_Store
+**/.DS_Store
+
+# Credentials and log files
 *.log
 sync-drive-user_accessKeys.csv
 sync-drive-user_credentials.csv
