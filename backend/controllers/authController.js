@@ -76,6 +76,8 @@ export const loginWithGoogle = async (req, res, next) => {
       httpOnly: true,
       signed: true,
       maxAge: sessionExpiryTime,
+      sameSite: "none", // Required for cross-domain cookies between Vercel and EC2
+      secure: true,     // Required when sameSite is 'none' (works because backend is on HTTPS)
     });
 
     return res.json({ message: "logged in" });
