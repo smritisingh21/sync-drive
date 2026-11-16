@@ -389,7 +389,7 @@ function Sidebar({
       {/* Bottom Section: Storage & Profile Details */}
       <div className="border-t border-gray-200/80 px-3 py-3 space-y-3">
         {/* Storage usage */}
-        <div className="px-1">
+        {/* <div className="px-1">
           <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
             <div
               className="h-full bg-[#2b2ffb] rounded-full"
@@ -399,7 +399,7 @@ function Sidebar({
           <p className="mt-1 text-[10px] text-gray-500">
             {usedGB.toFixed(2)} GB of {totalGB.toFixed(0)} GB used
           </p>
-        </div>
+        </div> */}
 
         {/* Profile Details + Dropdown Button */}
         <div>

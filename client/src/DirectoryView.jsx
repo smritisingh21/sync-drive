@@ -8,7 +8,7 @@ import ContextMenu from "./components/ContextMenu";
 import Sidebar from "./components/Sidebar";
 import { DirectoryContext } from "./context/DirectoryContext";
 import { BsGrid, BsList } from "react-icons/bs";
-import { FaBars } from "react-icons/fa";
+import { FaBars, FaSearch, FaTimes } from "react-icons/fa";
 
 import {
   getDirectoryItems,
@@ -65,6 +65,8 @@ function DirectoryView() {
   const [previewItem, setPreviewItem] = useState(null);
   const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [breadcrumbs, setBreadcrumbs] = useState([{ id: "", name: "My Drive" }]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [recentFolders, setRecentFolders] = useState(() => {
     try {
@@ -84,6 +86,37 @@ function DirectoryView() {
       setDirectoryName(dirId ? data.name : "My Drive");
       setDirectoriesList([...data.directories].reverse());
       setFilesList([...data.files].reverse());
+
+      if (Array.isArray(data.breadcrumbs) && data.breadcrumbs.length > 0) {
+        setBreadcrumbs(data.breadcrumbs);
+      } else if (!dirId) {
+        setBreadcrumbs([{ id: "", name: "My Drive" }]);
+      } else {
+        // Fallback if backend hasn't been updated yet: walk up parentDirId
+        const trail = [];
+        let cursor = data;
+        const visited = new Set();
+        while (cursor && !visited.has(String(cursor._id || cursor.id))) {
+          visited.add(String(cursor._id || cursor.id));
+          if (!cursor.parentDirId) {
+            trail.unshift({ id: "", name: "My Drive" });
+            break;
+          }
+          trail.unshift({
+            id: String(cursor._id || cursor.id),
+            name: cursor.name,
+          });
+          try {
+            cursor = await getDirectoryItems(cursor.parentDirId);
+          } catch {
+            trail.unshift({ id: "", name: "My Drive" });
+            break;
+          }
+        }
+        setBreadcrumbs(
+          trail.length > 0 ? trail : [{ id: "", name: "My Drive" }]
+        );
+      }
 
       if (dirId && data.name) {
         setRecentFolders((prev) => {
@@ -108,6 +141,7 @@ function DirectoryView() {
     loadDirectory();
     setActiveContextMenu(null);
     setPreviewItem(null);
+    setSearchQuery("");
   }, [dirId]);
 
   function getFileIcon(filename = "") {
@@ -340,10 +374,17 @@ function DirectoryView() {
     return () => document.removeEventListener("click", handleDocumentClick);
   }, []);
 
-  const combinedItems = [
+  const allItems = [
     ...directoriesList.map((d) => ({ ...d, isDirectory: true })),
     ...filesList.map((f) => ({ ...f, isDirectory: false })),
   ];
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const combinedItems = normalizedQuery
+    ? allItems.filter((item) =>
+        (item.name || "").toLowerCase().includes(normalizedQuery)
+      )
+    : allItems;
 
   const isUploading = !!uploadItem?.isUploading;
   const progressMap = uploadItem
@@ -408,7 +449,13 @@ function DirectoryView() {
               <FaBars className="text-sm" />
             </button>
             <div className="flex-1 min-w-0">
-              <DirectoryHeader directoryName={directoryName} />
+              <DirectoryHeader
+                directoryName={directoryName}
+                breadcrumbs={breadcrumbs}
+                previewItem={previewItem}
+                onClearPreview={() => setPreviewItem(null)}
+                onSelectPreview={(file) => setPreviewItem(file)}
+              />
             </div>
             <input
               ref={fileInputRef}
@@ -419,8 +466,8 @@ function DirectoryView() {
             />
           </div>
 
-          {/* Controls Segment: Pinterest-styled List/Icon layout button */}
-          <div className="flex items-center justify-start mb-6 px-2">
+          {/* Controls Segment: Pinterest-styled List/Icon layout button + Search Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6 px-2">
             <div className="bg-gray-200/60 p-1 rounded-full flex gap-1">
               <button
                 onClick={() => setViewMode("grid")}
@@ -441,6 +488,28 @@ function DirectoryView() {
                 <BsList />
               </button>
             </div>
+
+            {/* Search Bar */}
+            <div className="relative flex-1 max-w-sm min-w-[200px]">
+              <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search files & folders..."
+                className="w-full pl-9 pr-9 py-2 rounded-full bg-white border border-gray-200 text-xs text-gray-800 placeholder-gray-400 shadow-2xs focus:outline-none focus:border-[#2b2ffb] focus:ring-2 focus:ring-[#2b2ffb]/15 transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear search"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-700 cursor-pointer"
+                >
+                  <FaTimes className="text-[10px]" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Main Workspace Display Content */}
@@ -450,6 +519,23 @@ function DirectoryView() {
                 <p className="text-sm font-semibold text-gray-500 tracking-wider">
                   Access Denied or Directory Missing
                 </p>
+              </div>
+            ) : normalizedQuery ? (
+              <div className="bg-white rounded-3xl border border-dashed border-gray-300 p-14 text-center max-w-xl mx-auto shadow-sm">
+                <div className="mb-3 text-3xl text-gray-400">🔍</div>
+                <p className="text-base font-bold text-gray-700">
+                  No results for "{searchQuery}"
+                </p>
+                <p className="text-xs text-gray-400 mt-1 mb-4">
+                  Try a different file or folder name.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="px-4 py-2 rounded-full bg-[#2b2ffb] text-white text-xs font-bold hover:bg-[#1f23d9] transition-colors cursor-pointer"
+                >
+                  Clear Search
+                </button>
               </div>
             ) : (
               <div className="bg-white rounded-3xl border border-dashed border-gray-300 p-16 text-center max-w-xl mx-auto shadow-sm">
@@ -837,7 +923,7 @@ function DirectoryView() {
           <DetailsPopup
             item={detailsItem}
             onClose={closeDetailsPopup}
-            currentPath={directoryName}
+            currentPath={breadcrumbs.map((b) => b.name).join(" / ")}
           />
 
         </div>

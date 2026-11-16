@@ -64,8 +64,28 @@ export const getDirectory = async (req, res) => {
     })
   );
 
+  const breadcrumbs = [];
+  let current = directoryData;
+  while (current) {
+    const isRoot =
+      current._id.toString() === user.rootDirId?.toString() ||
+      !current.parentDirId;
+    breadcrumbs.unshift({
+      id: isRoot ? "" : current._id.toString(),
+      name: isRoot ? "My Drive" : current.name,
+    });
+    if (isRoot) break;
+    current = await Directory.findOne({
+      _id: current.parentDirId,
+      userId: req.user._id,
+    })
+      .select("_id name parentDirId")
+      .lean();
+  }
+
   return res.status(200).json({
     ...directoryData,
+    breadcrumbs,
     files: filesWithUrls,
     directories: directories.map((dir) => ({ ...dir, id: dir._id })),
   });
