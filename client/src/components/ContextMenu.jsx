@@ -50,7 +50,8 @@ function ContextMenu({ item, isUploadingItem }) {
       <div
         className={itemClass}
         onClick={() =>
-          (window.location.href = `${apiBaseUrl}/file/${item.id}?action=download`)
+          (window.location.href =
+            item.downloadUrl || `${apiBaseUrl}/file/${item.id}?action=download`)
         }
       >
         Download

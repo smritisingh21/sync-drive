@@ -46,21 +46,22 @@ function DirectoryView() {
   const [renameValue, setRenameValue] = useState("");
   const [uploadItem, setUploadItem] = useState(null);
 
-  
+
   const [viewMode, setViewMode] = useState(() => {
     return localStorage.getItem("syncDriveViewMode") || "list";
   });
   useEffect(() => {
     localStorage.setItem("syncDriveViewMode", viewMode);
   }, [viewMode]);
-  
-  
+
+
   const fileInputRef = useRef(null);
   const xhrRef = useRef(null);
 
   const [activeContextMenu, setActiveContextMenu] = useState(null);
   const [detailsItem, setDetailsItem] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
+  const [previewItem, setPreviewItem] = useState(null);
 
   const openDetailsPopup = (item) => setDetailsItem(item);
   const closeDetailsPopup = () => setDetailsItem(null);
@@ -80,14 +81,15 @@ function DirectoryView() {
   useEffect(() => {
     loadDirectory();
     setActiveContextMenu(null);
+    setPreviewItem(null);
   }, [dirId]);
 
-  function getFileIcon(filename) {
+  function getFileIcon(filename = "") {
     const ext = filename.split(".").pop().toLowerCase();
     switch (ext) {
       case "pdf": return "pdf";
-      case "png": case "jpg": case "jpeg": case "gif": return "image";
-      case "mp4": case "mov": case "avi": return "video";
+      case "png": case "jpg": case "jpeg": case "gif": case "webp": case "svg": case "bmp": case "avif": return "image";
+      case "mp4": case "mov": case "avi": case "webm": case "mkv": case "m4v": case "ogg": return "video";
       case "zip": case "rar": case "tar": case "gz": return "archive";
       case "js": case "jsx": case "ts": case "tsx":
       case "html": case "css": case "py": case "java": return "code";
@@ -99,9 +101,55 @@ function DirectoryView() {
     import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:4000";
 
   function handleRowClick(type, id) {
-    if (type === "directory") navigate(`/directory/${id}`);
-    else window.open(`${backendBaseUrl}/file/${id}`, "_blank");
+    if (type === "directory") {
+      navigate(`/directory/${id}`);
+    } else {
+      const targetFile = filesList.find((f) => f.id === id);
+      if (!targetFile) return;
+
+      const iconType = getFileIcon(targetFile.name);
+      if (iconType === "image" || iconType === "video") {
+        setPreviewItem(targetFile);
+      } else {
+        // PDFs and other files are downloaded only
+        const downloadUrl =
+          targetFile.downloadUrl ||
+          targetFile.url ||
+          `${backendBaseUrl}/file/${id}?action=download`;
+        window.location.href = downloadUrl;
+      }
+    }
   }
+
+  const previewableFiles = filesList.filter((f) => {
+    const type = getFileIcon(f.name);
+    return type === "image" || type === "video";
+  });
+
+  useEffect(() => {
+    if (!previewItem) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setPreviewItem(null);
+      } else if (e.key === "ArrowRight" && previewableFiles.length > 1) {
+        const idx = previewableFiles.findIndex((f) => f.id === previewItem.id);
+        if (idx !== -1) {
+          setPreviewItem(previewableFiles[(idx + 1) % previewableFiles.length]);
+        }
+      } else if (e.key === "ArrowLeft" && previewableFiles.length > 1) {
+        const idx = previewableFiles.findIndex((f) => f.id === previewItem.id);
+        if (idx !== -1) {
+          setPreviewItem(
+            previewableFiles[
+              (idx - 1 + previewableFiles.length) % previewableFiles.length
+            ]
+          );
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previewItem, previewableFiles]);
 
   async function handleFileSelect(e) {
     const file = e.target.files?.[0];
@@ -121,7 +169,10 @@ function DirectoryView() {
       id: `temp-${Date.now()}`,
       isUploading: true,
       progress: 0,
-      url: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
+      url:
+        file.type.startsWith("image/") || file.type.startsWith("video/")
+          ? URL.createObjectURL(file)
+          : null,
     };
 
     try {
@@ -148,6 +199,10 @@ function DirectoryView() {
     const xhr = new XMLHttpRequest();
     xhrRef.current = xhr;
     xhr.open("PUT", uploadUrl);
+
+    if (item.file?.type) {
+      xhr.setRequestHeader("Content-Type", item.file.type);
+    }
 
     xhr.upload.addEventListener("progress", (evt) => {
       if (evt.lengthComputable) {
@@ -280,7 +335,7 @@ function DirectoryView() {
           {/* Error banner — Toast-style design */}
           {errorMessage && !isAccessDenied && (
             <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-[#2b2ffb] text-white text-sm font-medium rounded-full shadow-lg flex items-center gap-2 animate-bounce">
-             
+
               <span>⚠️</span> {errorMessage}
             </div>
           )}
@@ -302,23 +357,21 @@ function DirectoryView() {
             <div className="bg-gray-200/60 p-1 rounded-full flex gap-1">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`px-4 py-2 text-xs font-bold rounded-full transition-opacity duration-200 ${
-                  viewMode === "grid"
-                    ? "bg-[#2b2ffb] text-white shadow-sm"
-                    : "text-gray-600 hover:bg-gray-300/50"
-                }`}
+                className={`px-4 py-2 text-xs font-bold rounded-full transition-opacity duration-200 ${viewMode === "grid"
+                  ? "bg-[#2b2ffb] text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-300/50"
+                  }`}
               >
-                <BsGrid/>
+                <BsGrid />
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`px-4 py-2 text-xs font-bold rounded-full transition-all duration-100 ${
-                  viewMode === "list"
-                    ? "bg-[#2b2ffb] text-white shadow-sm"
-                    : "text-gray-600 hover:bg-gray-300/50"
-                }`}
+                className={`px-4 py-2 text-xs font-bold rounded-full transition-all duration-100 ${viewMode === "list"
+                  ? "bg-[#2b2ffb] text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-300/50"
+                  }`}
               >
-                <BsList/>
+                <BsList />
               </button>
             </div>
           </div>
@@ -357,19 +410,17 @@ function DirectoryView() {
                       e.preventDefault();
                       setActiveContextMenu((prev) => (prev === item.id ? null : item.id));
                     }}
-                    className={`break-inside-avoid bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer border border-gray-100 relative ${
-                      activeContextMenu === item.id ? "overflow-visible z-30" : "overflow-hidden"
-                    }`}
+                    className={`break-inside-avoid bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer border border-gray-100 relative ${activeContextMenu === item.id ? "overflow-visible z-30" : "overflow-hidden"
+                      }`}
                   >
                     {/* Thumbnail or Icon Cover Canvas */}
                     <div
-                      className={`w-full rounded-t-2xl flex items-center justify-center overflow-hidden transition-colors ${
-                        item.isDirectory
-                          ? "h-32 bg-[#cded9e]/30"
-                          : iconType === "image"
+                      className={`w-full rounded-t-2xl flex items-center justify-center overflow-hidden transition-colors ${item.isDirectory
+                        ? "h-32 bg-[#cded9e]/30"
+                        : iconType === "image" || iconType === "video"
                           ? "h-48 bg-gray-100 relative"
                           : "h-44 bg-gray-100/70"
-                      }`}
+                        }`}
                     >
                       {!item.isDirectory && iconType === "image" ? (
                         <div className="w-full h-full relative flex items-center justify-center bg-gray-100">
@@ -378,7 +429,7 @@ function DirectoryView() {
                               item.url ||
                               (item.file
                                 ? URL.createObjectURL(item.file)
-                                : `${import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:4000"}/file/${item.id}`)
+                                : `${backendBaseUrl}/file/${item.id}`)
                             }
                             alt={item.name}
                             loading="lazy"
@@ -393,19 +444,46 @@ function DirectoryView() {
                             <span className="text-4xl">🖼️</span>
                           </div>
                         </div>
+                      ) : !item.isDirectory && iconType === "video" ? (
+                        <div className="w-full h-full relative flex items-center justify-center bg-gray-900">
+                          <video
+                            src={`${
+                              item.url ||
+                              (item.file
+                                ? URL.createObjectURL(item.file)
+                                : `${backendBaseUrl}/file/${item.id}`)
+                            }#t=0.5`}
+                            preload="metadata"
+                            muted
+                            playsInline
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                              const fallback = e.currentTarget.parentElement?.querySelector(".fallback-icon");
+                              if (fallback) fallback.classList.remove("hidden");
+                            }}
+                          />
+                          <div className="fallback-icon hidden w-full h-full items-center justify-center">
+                            <span className="text-4xl">🎬</span>
+                          </div>
+                          {/* Play Icon Overlay Badge */}
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white shadow-lg group-hover:scale-110 group-hover:bg-[#2b2ffb] transition-all duration-200">
+                              <span className="text-sm ml-0.5">▶</span>
+                            </div>
+                          </div>
+                        </div>
                       ) : (
                         <span className="text-4xl group-hover:scale-110 transition-transform duration-200">
                           {item.isDirectory
                             ? "📁"
                             : iconType === "pdf"
-                            ? "📕"
-                            : iconType === "video"
-                            ? "🎬"
-                            : iconType === "archive"
-                            ? "📦"
-                            : iconType === "code"
-                            ? "💻"
-                            : "📄"}
+                              ? "📕"
+                              : iconType === "archive"
+                                ? "📦"
+                                : iconType === "code"
+                                  ? "💻"
+                                  : "📄"}
                         </span>
                       )}
                     </div>
@@ -417,10 +495,18 @@ function DirectoryView() {
                           {item.name}
                         </p>
                         <p className="text-[11px] text-gray-400">
-                          {item.isDirectory ? "Folder" : "Document File"}
+                          {item.isDirectory
+                            ? "Folder"
+                            : iconType === "image"
+                              ? "Image"
+                              : iconType === "video"
+                                ? "Video"
+                                : iconType === "pdf"
+                                  ? "PDF (Click to download)"
+                                  : "Document File"}
                         </p>
                       </div>
-                      
+
                       {/* Context Menu Button Interaction Hook Toggle area */}
                       <div className="relative">
                         <button
@@ -554,6 +640,145 @@ function DirectoryView() {
                     onCancel={() => setDeleteItem(null)}
                   />
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* In-App Media Preview Modal (Images & Videos Only) */}
+          {previewItem && (
+            <div
+              onClick={() => setPreviewItem(null)}
+              className="fixed inset-0 z-50 flex flex-col bg-black/85 backdrop-blur-md animate-fade-in"
+            >
+              {/* Top Toolbar */}
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center justify-between px-4 sm:px-8 py-4 bg-black/40 border-b border-white/10 text-white"
+              >
+                <div className="flex items-center gap-3 min-w-0 pr-4">
+                  <span className="text-xl shrink-0">
+                    {getFileIcon(previewItem.name) === "video" ? "🎬" : "🖼️"}
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="text-sm sm:text-base font-semibold truncate">
+                      {previewItem.name}
+                    </h3>
+                    <p className="text-[11px] text-gray-400">
+                      {getFileIcon(previewItem.name) === "video"
+                        ? "Video Preview"
+                        : "Image Preview"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                  <button
+                    onClick={() => {
+                      const dlUrl =
+                        previewItem.downloadUrl ||
+                        `${backendBaseUrl}/file/${previewItem.id}?action=download`;
+                      window.location.href = dlUrl;
+                    }}
+                    className="px-4 py-2 rounded-full bg-[#cded9e] text-gray-900 hover:bg-[#b8df80] text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    Download
+                  </button>
+                  <button
+                    onClick={() => openDetailsPopup(previewItem)}
+                    className="px-3.5 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors cursor-pointer"
+                  >
+                    Details
+                  </button>
+                  <button
+                    onClick={() => setPreviewItem(null)}
+                    aria-label="Close preview"
+                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-lg font-bold transition-colors cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+
+              {/* Main Media Stage */}
+              <div className="relative flex-1 flex items-center justify-center p-4 sm:p-8 overflow-hidden">
+                {/* Previous Media Button */}
+                {previewableFiles.length > 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const idx = previewableFiles.findIndex(
+                        (f) => f.id === previewItem.id
+                      );
+                      if (idx !== -1) {
+                        setPreviewItem(
+                          previewableFiles[
+                            (idx - 1 + previewableFiles.length) %
+                              previewableFiles.length
+                          ]
+                        );
+                      }
+                    }}
+                    aria-label="Previous media"
+                    className="absolute left-3 sm:left-6 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/25 border border-white/15 flex items-center justify-center text-white text-2xl transition-colors cursor-pointer"
+                  >
+                    ‹
+                  </button>
+                )}
+
+                {/* Media Element */}
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="max-w-5xl max-h-full flex items-center justify-center"
+                >
+                  {getFileIcon(previewItem.name) === "video" ? (
+                    <video
+                      key={previewItem.id}
+                      src={
+                        previewItem.url ||
+                        (previewItem.file
+                          ? URL.createObjectURL(previewItem.file)
+                          : `${backendBaseUrl}/file/${previewItem.id}`)
+                      }
+                      controls
+                      autoPlay
+                      playsInline
+                      className="max-h-[78vh] max-w-[90vw] rounded-2xl shadow-2xl bg-black outline-none border border-white/10"
+                    />
+                  ) : (
+                    <img
+                      key={previewItem.id}
+                      src={
+                        previewItem.url ||
+                        (previewItem.file
+                          ? URL.createObjectURL(previewItem.file)
+                          : `${backendBaseUrl}/file/${previewItem.id}`)
+                      }
+                      alt={previewItem.name}
+                      className="max-h-[78vh] max-w-[90vw] object-contain rounded-2xl shadow-2xl select-none"
+                    />
+                  )}
+                </div>
+
+                {/* Next Media Button */}
+                {previewableFiles.length > 1 && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const idx = previewableFiles.findIndex(
+                        (f) => f.id === previewItem.id
+                      );
+                      if (idx !== -1) {
+                        setPreviewItem(
+                          previewableFiles[(idx + 1) % previewableFiles.length]
+                        );
+                      }
+                    }}
+                    aria-label="Next media"
+                    className="absolute right-3 sm:right-6 z-10 w-11 h-11 rounded-full bg-white/10 hover:bg-white/25 border border-white/15 flex items-center justify-center text-white text-2xl transition-colors cursor-pointer"
+                  >
+                    ›
+                  </button>
+                )}
               </div>
             </div>
           )}

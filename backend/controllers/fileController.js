@@ -20,6 +20,11 @@ export async function updateDirectoriesSize(parentId, deltaSize) {
   }
 }
 
+const PREVIEWABLE_EXTENSIONS = [
+  ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".avif",
+  ".mp4", ".mov", ".avi", ".webm", ".mkv", ".m4v", ".ogg",
+];
+
 export const getFile = async (req, res) => {
   const { id } = req.params;
   const fileData = await File.findOne({
@@ -31,10 +36,11 @@ export const getFile = async (req, res) => {
     return res.status(404).json({ error: "File not found!" });
   }
 
-  // If "download" is requested, set the appropriate headers
-  const filePath = `${process.cwd()}/storage/${id}${fileData.extension}`;
+  const isPreviewable = PREVIEWABLE_EXTENSIONS.includes(
+    fileData.extension?.toLowerCase()
+  );
 
-  if (req.query.action === "download") {
+  if (req.query.action === "download" || !isPreviewable) {
     const fileUrl = await createGetSignedUrl({
       key: `${id}${fileData.extension}`,
       download: true,
@@ -43,7 +49,7 @@ export const getFile = async (req, res) => {
     return res.redirect(fileUrl);
   }
 
-  // Send file
+  // Send inline previewable file (image/video)
   const fileUrl = await createGetSignedUrl({
     key: `${id}${fileData.extension}`,
     filename: fileData.name,

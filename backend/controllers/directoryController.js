@@ -4,7 +4,10 @@ import File from "../models/fileModel.js";
 import { updateDirectoriesSize } from "./fileController.js";
 import { createGetSignedUrl } from "../config/s3.js";
 
-const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp"];
+const PREVIEWABLE_EXTENSIONS = [
+  ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".avif",
+  ".mp4", ".mov", ".avi", ".webm", ".mkv", ".m4v", ".ogg",
+];
 
 export const getDirectory = async (req, res) => {
   const user = req.user;
@@ -25,23 +28,38 @@ export const getDirectory = async (req, res) => {
   const filesWithUrls = await Promise.all(
     files.map(async (file) => {
       let url = null;
-      if (
-        IMAGE_EXTENSIONS.includes(file.extension?.toLowerCase()) &&
-        !file.isUploading
-      ) {
+      let downloadUrl = null;
+      if (!file.isUploading) {
         try {
-          url = await createGetSignedUrl({
-            key: `${file._id}${file.extension}`,
+          const key = `${file._id}${file.extension}`;
+          const isPreviewable = PREVIEWABLE_EXTENSIONS.includes(
+            file.extension?.toLowerCase()
+          );
+
+          downloadUrl = await createGetSignedUrl({
+            key,
             filename: file.name,
+            download: true,
           });
+
+          if (isPreviewable) {
+            url = await createGetSignedUrl({
+              key,
+              filename: file.name,
+              download: false,
+            });
+          } else {
+            url = downloadUrl;
+          }
         } catch (e) {
-          console.error("Error generating thumbnail signed URL:", e.message);
+          console.error("Error generating signed URL:", e.message);
         }
       }
       return {
         ...file,
         id: file._id,
         url,
+        downloadUrl,
       };
     })
   );
