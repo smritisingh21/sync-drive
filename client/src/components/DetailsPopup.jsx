@@ -10,39 +10,29 @@ import {
   FaFileAlt,
   FaDownload,
 } from "react-icons/fa";
+import { formatSize, getFileCategory } from "../utils/fileHelpers";
 
-export const formatSize = (bytes = 0) => {
-  const KB = 1024;
-  const MB = KB * 1024;
-  const GB = MB * 1024;
-
-  if (bytes >= GB) return (bytes / GB).toFixed(2) + " GB";
-  if (bytes >= MB) return (bytes / MB).toFixed(2) + " MB";
-  if (bytes >= KB) return (bytes / KB).toFixed(2) + " KB";
-  return bytes + " B";
-};
+export { formatSize };
 
 function getItemIcon(item) {
   if (item.isDirectory) {
-    return <FaFolder className="text-amber-500 text-xl" />;
+    return <FaFolder className="text-[#787774] text-lg" />;
   }
-  const ext = (item.name || "").split(".").pop().toLowerCase();
-  if (["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif"].includes(ext)) {
-    return <FaFileImage className="text-orange-500 text-xl" />;
+  const category = getFileCategory(item.name);
+  switch (category) {
+    case "image":
+      return <FaFileImage className="text-[#787774] text-lg" />;
+    case "video":
+      return <FaFileVideo className="text-[#787774] text-lg" />;
+    case "pdf":
+      return <FaFilePdf className="text-[#787774] text-lg" />;
+    case "archive":
+      return <FaFileArchive className="text-[#787774] text-lg" />;
+    case "code":
+      return <FaFileCode className="text-[#787774] text-lg" />;
+    default:
+      return <FaFileAlt className="text-[#787774] text-lg" />;
   }
-  if (["mp4", "mov", "avi", "webm", "mkv", "m4v", "ogg"].includes(ext)) {
-    return <FaFileVideo className="text-red-500 text-xl" />;
-  }
-  if (ext === "pdf") {
-    return <FaFilePdf className="text-red-600 text-xl" />;
-  }
-  if (["zip", "rar", "tar", "gz"].includes(ext)) {
-    return <FaFileArchive className="text-blue-600 text-xl" />;
-  }
-  if (["js", "jsx", "ts", "tsx", "html", "css", "py", "java"].includes(ext)) {
-    return <FaFileCode className="text-orange-400 text-xl" />;
-  }
-  return <FaFileAlt className="text-blue-500 text-xl" />;
 }
 
 function DetailsPopup({ item, onClose, currentPath = "My Drive" }) {
@@ -84,39 +74,35 @@ function DetailsPopup({ item, onClose, currentPath = "My Drive" }) {
     downloadUrl,
   } = item;
 
-  const ext = (name || "").split(".").pop().toLowerCase();
-  const isImage =
-    !isDirectory &&
-    ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif"].includes(ext);
-
+  const isImage = !isDirectory && getFileCategory(name) === "image";
   const numberOfFolders = directories?.length ?? 0;
   const numberOfFiles = files?.length ?? 0;
 
   return (
     <div
       className={`fixed inset-0 z-[60] flex justify-end transition-colors duration-200 ${
-        isVisible ? "bg-black/40 backdrop-blur-[2px]" : "bg-black/0"
+        isVisible ? "bg-black/25 backdrop-blur-[1px]" : "bg-black/0"
       }`}
       onClick={onClose}
     >
       <aside
         onClick={(e) => e.stopPropagation()}
-        className={`h-full w-full max-w-sm bg-white shadow-2xl border-l border-gray-200 flex flex-col transform transition-transform duration-250 ease-out ${
+        className={`h-full w-full max-w-sm bg-white shadow-xl border-l border-[#E6E6E4] flex flex-col transform transition-transform duration-200 ease-out text-[#37352F] ${
           isVisible ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-200 flex items-center justify-between gap-3 bg-[#f7f7f2]">
+        <div className="px-5 py-4 border-b border-[#E6E6E4] flex items-center justify-between gap-3 bg-[#F7F7F5]">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0 shadow-2xs">
+            <div className="w-8 h-8 rounded-md bg-white border border-[#E6E6E4] flex items-center justify-center shrink-0">
               {getItemIcon(item)}
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-gray-900 truncate">
+              <h2 className="text-sm font-semibold text-[#191919] truncate">
                 {name}
               </h2>
-              <p className="text-[11px] text-gray-500">
-                {isDirectory ? "Folder Details" : "File Details"}
+              <p className="text-[11px] text-[#787774]">
+                {isDirectory ? "Folder details" : "File details"}
               </p>
             </div>
           </div>
@@ -125,17 +111,16 @@ function DetailsPopup({ item, onClose, currentPath = "My Drive" }) {
             type="button"
             onClick={onClose}
             aria-label="Close details sidebar"
-            className="w-8 h-8 rounded-full hover:bg-gray-200/70 flex items-center justify-center text-gray-500 hover:text-gray-800 transition-colors cursor-pointer shrink-0"
+            className="w-7 h-7 rounded-md hover:bg-[#EFEFEE] flex items-center justify-center text-[#787774] hover:text-[#191919] transition-colors cursor-pointer shrink-0"
           >
-            <FaTimes className="text-sm" />
+            <FaTimes className="text-xs" />
           </button>
         </div>
 
         {/* Scrollable Body */}
         <div className="flex-1 overflow-y-auto p-5 space-y-5">
-          {/* Thumbnail preview for images */}
           {isImage && url && (
-            <div className="w-full h-44 rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
+            <div className="w-full h-44 rounded-lg overflow-hidden bg-[#F7F7F5] border border-[#E6E6E4]">
               <img
                 src={url}
                 alt={name}
@@ -144,16 +129,15 @@ function DetailsPopup({ item, onClose, currentPath = "My Drive" }) {
             </div>
           )}
 
-          {/* Metadata rows */}
-          <div className="space-y-3">
-            <h3 className="text-[11px] font-bold uppercase tracking-wider text-gray-400">
+          <div className="space-y-2.5">
+            <h3 className="text-[11px] font-medium uppercase tracking-wider text-[#9B9A97]">
               Properties
             </h3>
 
-            <div className="bg-[#f7f7f2] rounded-2xl p-4 space-y-3 text-xs border border-gray-100">
+            <div className="bg-[#F7F7F5] rounded-lg p-4 space-y-3 text-xs border border-[#E6E6E4]">
               <div className="flex justify-between gap-4">
-                <span className="text-gray-500 shrink-0">Type</span>
-                <span className="font-semibold text-gray-800 text-right">
+                <span className="text-[#787774] shrink-0">Type</span>
+                <span className="font-medium text-[#191919] text-right">
                   {isDirectory
                     ? "Folder"
                     : extension
@@ -163,15 +147,15 @@ function DetailsPopup({ item, onClose, currentPath = "My Drive" }) {
               </div>
 
               <div className="flex justify-between gap-4">
-                <span className="text-gray-500 shrink-0">Location</span>
-                <span className="font-semibold text-gray-800 text-right truncate">
+                <span className="text-[#787774] shrink-0">Location</span>
+                <span className="font-medium text-[#191919] text-right truncate">
                   {currentPath}
                 </span>
               </div>
 
               <div className="flex justify-between gap-4">
-                <span className="text-gray-500 shrink-0">Size</span>
-                <span className="font-semibold text-gray-800 text-right">
+                <span className="text-[#787774] shrink-0">Size</span>
+                <span className="font-medium text-[#191919] text-right">
                   {formatSize(size)}
                 </span>
               </div>
@@ -179,30 +163,30 @@ function DetailsPopup({ item, onClose, currentPath = "My Drive" }) {
               {isDirectory && (
                 <>
                   <div className="flex justify-between gap-4">
-                    <span className="text-gray-500 shrink-0">Files</span>
-                    <span className="font-semibold text-gray-800 text-right">
+                    <span className="text-[#787774] shrink-0">Files</span>
+                    <span className="font-medium text-[#191919] text-right">
                       {numberOfFiles}
                     </span>
                   </div>
                   <div className="flex justify-between gap-4">
-                    <span className="text-gray-500 shrink-0">Folders</span>
-                    <span className="font-semibold text-gray-800 text-right">
+                    <span className="text-[#787774] shrink-0">Folders</span>
+                    <span className="font-medium text-[#191919] text-right">
                       {numberOfFolders}
                     </span>
                   </div>
                 </>
               )}
 
-              <div className="border-t border-gray-200/80 pt-3 flex justify-between gap-4">
-                <span className="text-gray-500 shrink-0">Created</span>
-                <span className="font-medium text-gray-800 text-right">
+              <div className="border-t border-[#E6E6E4] pt-3 flex justify-between gap-4">
+                <span className="text-[#787774] shrink-0">Created</span>
+                <span className="font-normal text-[#37352F] text-right">
                   {createdAt ? new Date(createdAt).toLocaleString() : "—"}
                 </span>
               </div>
 
               <div className="flex justify-between gap-4">
-                <span className="text-gray-500 shrink-0">Modified</span>
-                <span className="font-medium text-gray-800 text-right">
+                <span className="text-[#787774] shrink-0">Modified</span>
+                <span className="font-normal text-[#37352F] text-right">
                   {updatedAt ? new Date(updatedAt).toLocaleString() : "—"}
                 </span>
               </div>
@@ -211,14 +195,14 @@ function DetailsPopup({ item, onClose, currentPath = "My Drive" }) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200 bg-[#f7f7f2] flex items-center gap-2">
+        <div className="p-4 border-t border-[#E6E6E4] bg-[#F7F7F5] flex items-center gap-2">
           {!isDirectory && downloadUrl && (
             <button
               type="button"
               onClick={() => {
                 window.location.href = downloadUrl;
               }}
-              className="flex-1 py-2.5 px-4 rounded-xl bg-[#2b2ffb] hover:bg-[#1f23d9] text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              className="flex-1 py-2 px-4 rounded-lg bg-[#191919] hover:bg-[#2F2F2F] text-white text-xs font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
               <FaDownload className="text-xs" />
               <span>Download</span>
@@ -229,7 +213,7 @@ function DetailsPopup({ item, onClose, currentPath = "My Drive" }) {
             onClick={onClose}
             className={`${
               !isDirectory && downloadUrl ? "px-4" : "w-full"
-            } py-2.5 rounded-xl bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 text-xs font-semibold transition-colors cursor-pointer`}
+            } py-2 rounded-lg bg-white border border-[#E6E6E4] hover:bg-[#EFEFEE] text-[#37352F] text-xs font-medium transition-colors cursor-pointer`}
           >
             Close
           </button>

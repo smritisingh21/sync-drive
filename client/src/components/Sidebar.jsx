@@ -7,15 +7,13 @@ import {
   FaChevronDown,
   FaHome,
   FaClock,
-  FaUpload,
-  FaFolderPlus,
   FaSignOutAlt,
   FaSignInAlt,
   FaUser,
 } from "react-icons/fa";
 import { getDirectoryItems } from "../api/directoryApi";
 import { fetchUser, logoutUser, logoutAllSessions } from "../api/userApi";
-
+import ActionButtons from "./ActionButtons";
 
 function FolderTreeNode({
   folder,
@@ -44,7 +42,6 @@ function FolderTreeNode({
     }
   }, [folder.id]);
 
-  // Reload children if already expanded and workspace changes (create/rename/delete)
   useEffect(() => {
     if (isExpanded) {
       fetchSubFolders();
@@ -64,20 +61,17 @@ function FolderTreeNode({
     <div className="select-none">
       <div
         onClick={() => onSelectFolder(folder.id)}
-        style={{ paddingLeft: `${depth * 14 + 10}px` }}
-        className={`group flex items-center gap-1.5 py-1.5 pr-2.5 rounded-xl text-xs font-medium cursor-pointer transition-all duration-150 ${isSelected
-          ? "bg-blue-800/80 text-white font-semibold shadow-sm"
-          : "text-gray-700 hover:bg-gray-200/70"
+        style={{ paddingLeft: `${depth * 14 + 8}px` }}
+        className={`group flex items-center gap-1.5 py-1.5 pr-2.5 rounded-md text-[13px] cursor-pointer transition-colors ${isSelected
+            ? "bg-[#EBEBEA] text-[#191919] font-semibold"
+            : "text-[#37352F] hover:bg-[#EFEFEE] font-normal"
           }`}
       >
         <button
           type="button"
           onClick={handleToggleExpand}
           aria-label={isExpanded ? "Collapse folder" : "Expand folder"}
-          className={`w-4 h-4 flex items-center justify-center rounded transition-colors shrink-0 ${isSelected
-            ? "text-white/90 hover:bg-white/20"
-            : "text-gray-400 hover:text-gray-700 hover:bg-gray-300/60"
-            }`}
+          className="w-4 h-4 flex items-center justify-center rounded text-[#787774] hover:text-[#191919] hover:bg-[#E0E0DE] transition-colors shrink-0"
         >
           {isExpanded ? (
             <FaChevronDown className="text-[9px]" />
@@ -86,17 +80,11 @@ function FolderTreeNode({
           )}
         </button>
 
-        <span className="shrink-0">
+        <span className="shrink-0 text-[#787774]">
           {isExpanded ? (
-            <FaFolderOpen
-              className={`text-sm ${isSelected ? "text-[#cded9e]" : "text-amber-500"
-                }`}
-            />
+            <FaFolderOpen className="text-[13px]" />
           ) : (
-            <FaFolder
-              className={`text-sm ${isSelected ? "text-[#cded9e]" : "text-amber-500"
-                }`}
-            />
+            <FaFolder className="text-[13px]" />
           )}
         </span>
 
@@ -107,15 +95,15 @@ function FolderTreeNode({
         <div className="mt-0.5 space-y-0.5">
           {loading && !hasLoaded ? (
             <div
-              style={{ paddingLeft: `${(depth + 1) * 14 + 26}px` }}
-              className="py-1 text-[11px] text-gray-400 italic"
+              style={{ paddingLeft: `${(depth + 1) * 14 + 24}px` }}
+              className="py-1 text-xs text-[#9B9A97] italic"
             >
               Loading...
             </div>
           ) : subFolders.length === 0 ? (
             <div
-              style={{ paddingLeft: `${(depth + 1) * 14 + 26}px` }}
-              className="py-1 text-[11px] text-gray-400"
+              style={{ paddingLeft: `${(depth + 1) * 14 + 24}px` }}
+              className="py-1 text-xs text-[#9B9A97]"
             >
               No subfolders
             </div>
@@ -220,26 +208,22 @@ function Sidebar({
   }, [fetchRootFolders, refreshTrigger]);
 
   const handleSelectFolder = (folderId) => {
-    if (folderId) {
-      navigate(`/directory/${folderId}`);
-    } else {
-      navigate("/");
-    }
-    if (onCloseMobile) onCloseMobile();
+    navigate(folderId ? `/directory/${folderId}` : "/");
+    onCloseMobile?.();
   };
 
   const sidebarContent = (
-    <div className="flex flex-col h-full bg-white border-r border-gray-200/80 w-64 shrink-0 select-none">
+    <div className="flex flex-col h-full bg-[#F7F7F5] border-r border-[#E6E6E4] w-64 shrink-0 select-none text-[#37352F]">
       {/* Brand Header */}
-      <div className="px-5 pt-5 pb-4 flex items-center justify-between">
+      <div className="px-4 pt-4 pb-3 flex items-center justify-between">
         <div
           onClick={() => handleSelectFolder("")}
           className="flex items-center gap-2.5 cursor-pointer group"
         >
-          <div className="w-8 h-8 rounded-xl bg-blue-800/80 flex items-center justify-center text-white font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
+          <div className="w-7 h-7 rounded-md bg-[#191919] flex items-center justify-center text-white font-semibold text-xs">
             SD
           </div>
-          <span className="text-base font-extrabold tracking-tight text-gray-900">
+          <span className="text-sm font-semibold tracking-tight text-[#191919]">
             Sync Drive
           </span>
         </div>
@@ -248,49 +232,42 @@ function Sidebar({
           <button
             type="button"
             onClick={onCloseMobile}
-            className="lg:hidden w-7 h-7 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-500 text-sm"
+            className="lg:hidden w-7 h-7 rounded-md hover:bg-[#EFEFEE] flex items-center justify-center text-[#787774] text-sm cursor-pointer"
           >
             ✕
           </button>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-0.5 mb-5">
-        <button
-          type="button"
+
+      {/* Quick Actions */}
+      <div className="px-3 mb-4">
+        <ActionButtons
+          compact
           disabled={disabled}
-          onClick={() => {
+          onCreateFolderClick={() => {
             onCreateFolderClick?.();
             onCloseMobile?.();
           }}
-          className=" m-2 py-2 px-2 rounded-xl bg-[#cded9e] hover:bg-[#c1e68a] disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-        >
-          <FaFolderPlus className="text-xs" />
-          <span>New Folder</span>
-        </button>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => {
+          onUploadFilesClick={() => {
             onUploadFilesClick?.();
             onCloseMobile?.();
           }}
-          className="m-2 py-2 px-2 rounded-xl bg-blue-800/80 hover:bg-blue-800/20 disabled:opacity-50 disabled:cursor-not-allowed text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-        >
-          <FaUpload className="text-xs" />
-          <span>Upload</span>
-        </button>
+        />
       </div>
 
       {/* Scrollable Navigation Content */}
-      <div className="flex-1 overflow-y-auto px-3 pb-6 space-y-6">
+      <div className="flex-1 overflow-y-auto px-2.5 pb-4 space-y-5">
         {/* Primary Navigation & Nested Folder Tree */}
         <div>
-          {/* Home / My Drive Root Item */}
+          <p className="px-2 mb-1 text-[11px] font-medium text-[#9B9A97]">
+            Workspace
+          </p>
+
           <div
             onClick={() => handleSelectFolder("")}
-            className={`flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all ${isHomeActive
-              ? "bg-blue-800/80 text-white shadow-sm"
-              : "text-gray-800 hover:bg-gray-200/70"
+            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-[13px] cursor-pointer transition-colors ${isHomeActive
+                ? "bg-[#EBEBEA] text-[#191919] font-semibold"
+                : "text-[#37352F] hover:bg-[#EFEFEE] font-medium"
               }`}
           >
             <button
@@ -300,10 +277,7 @@ function Sidebar({
                 setIsRootExpanded((prev) => !prev);
               }}
               aria-label={isRootExpanded ? "Collapse My Drive" : "Expand My Drive"}
-              className={`w-4 h-4 flex items-center justify-center rounded transition-colors shrink-0 ${isHomeActive
-                ? "text-white/90 hover:bg-white/20"
-                : "text-gray-400 hover:text-gray-700 hover:bg-gray-300/60"
-                }`}
+              className="w-4 h-4 flex items-center justify-center rounded text-[#787774] hover:text-[#191919] hover:bg-[#E0E0DE] transition-colors shrink-0"
             >
               {isRootExpanded ? (
                 <FaChevronDown className="text-[9px]" />
@@ -312,22 +286,18 @@ function Sidebar({
               )}
             </button>
 
-            <FaHome
-              className={`text-sm shrink-0 ${isHomeActive ? "text-[#cded9e]" : "text-[#2b2ffb]"
-                }`}
-            />
-            <span className="truncate flex-1">Home (My Drive)</span>
+            <FaHome className="text-[13px] text-[#787774] shrink-0" />
+            <span className="truncate flex-1">My Drive</span>
           </div>
 
-          {/* Nested Folders Tree under My Drive */}
           {isRootExpanded && (
-            <div className="mt-1 space-y-0.5">
+            <div className="mt-0.5 space-y-0.5">
               {loadingRoot && rootFolders.length === 0 ? (
-                <p className="pl-8 py-1.5 text-[11px] text-gray-400 italic">
+                <p className="pl-7 py-1 text-xs text-[#9B9A97] italic">
                   Loading folders...
                 </p>
               ) : rootFolders.length === 0 ? (
-                <p className="pl-8 py-1.5 text-[11px] text-gray-400">
+                <p className="pl-7 py-1 text-xs text-[#9B9A97]">
                   No folders yet
                 </p>
               ) : (
@@ -346,19 +316,19 @@ function Sidebar({
           )}
         </div>
 
-        {/* Last 3 Recently Opened Folders Section */}
+        {/* Last 3 Recently Opened Folders */}
         <div>
-          <div className="px-2.5 mb-1.5 flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+          <div className="px-2 mb-1 flex items-center justify-between">
+            <p className="text-[11px] font-medium text-[#9B9A97] flex items-center gap-1.5">
               <FaClock className="text-[10px]" />
-              <span>Recent Folders</span>
+              <span>Recent</span>
             </p>
-            <span className="text-[10px] font-medium text-gray-400">Last 3</span>
+            <span className="text-[10px] text-[#9B9A97]">Last 3</span>
           </div>
 
           {recentFolders.length === 0 ? (
-            <p className="px-2.5 py-2 text-[11px] text-gray-400">
-              No recently opened folders
+            <p className="px-2 py-1.5 text-xs text-[#9B9A97]">
+              No recent folders
             </p>
           ) : (
             <div className="space-y-0.5">
@@ -368,15 +338,12 @@ function Sidebar({
                   <div
                     key={folder.id}
                     onClick={() => handleSelectFolder(folder.id)}
-                    className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium cursor-pointer transition-all ${isSelected
-                      ? "bg-blue-800/80 text-white font-semibold shadow-sm"
-                      : "text-gray-700 hover:bg-gray-200/70"
+                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[13px] cursor-pointer transition-colors ${isSelected
+                        ? "bg-[#EBEBEA] text-[#191919] font-semibold"
+                        : "text-[#37352F] hover:bg-[#EFEFEE]"
                       }`}
                   >
-                    <FaFolder
-                      className={`text-sm shrink-0 ${isSelected ? "text-[#cded9e]" : "text-amber-500"
-                        }`}
-                    />
+                    <FaFolder className="text-[13px] text-[#787774] shrink-0" />
                     <span className="truncate flex-1">{folder.name}</span>
                   </div>
                 );
@@ -387,49 +354,47 @@ function Sidebar({
       </div>
 
       {/* Bottom Section: Storage & Profile Details */}
-      <div className="border-t border-gray-200/80 px-3 py-3 space-y-3">
-        {/* Storage usage */}
+      <div className="border-t border-[#E6E6E4] px-3 py-3 space-y-2.5">
         {/* <div className="px-1">
-          <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div className="w-full h-1 bg-[#E6E6E4] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#2b2ffb] rounded-full"
+              className="h-full bg-[#37352F] rounded-full"
               style={{ width: `${usedPercent}%` }}
             />
           </div>
-          <p className="mt-1 text-[10px] text-gray-500">
+          <p className="mt-1.5 text-[11px] text-[#787774]">
             {usedGB.toFixed(2)} GB of {totalGB.toFixed(0)} GB used
           </p>
         </div> */}
 
-        {/* Profile Details + Dropdown Button */}
         <div>
           <button
             type="button"
             onClick={() => setShowProfileMenu((prev) => !prev)}
-            className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer text-left"
+            className="w-full flex items-center gap-2.5 p-1.5 rounded-md hover:bg-[#EFEFEE] transition-colors cursor-pointer text-left"
           >
             {userPicture ? (
               <img
                 src={userPicture}
                 alt={userName}
-                className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200"
+                className="w-7 h-7 rounded-full object-cover shrink-0 border border-[#E6E6E4]"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-[#2b2ffb]/10 text-[#2b2ffb] flex items-center justify-center shrink-0">
-                <FaUser className="text-xs" />
+              <div className="w-7 h-7 rounded-full bg-[#EBEBEA] text-[#37352F] flex items-center justify-center shrink-0">
+                <FaUser className="text-[11px]" />
               </div>
             )}
 
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-gray-800 truncate">
+              <p className="text-xs font-medium text-[#191919] truncate">
                 {userName}
               </p>
-              <p className="text-[10px] text-gray-500 truncate">
+              <p className="text-[11px] text-[#787774] truncate">
                 {userEmail}
               </p>
             </div>
 
-            <span className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 shrink-0">
+            <span className="w-5 h-5 rounded flex items-center justify-center text-[#787774] shrink-0">
               {showProfileMenu ? (
                 <FaChevronDown className="text-[10px]" />
               ) : (
@@ -438,25 +403,24 @@ function Sidebar({
             </span>
           </button>
 
-          {/* Dropdown Options under Profile Details */}
           {showProfileMenu && (
-            <div className="mt-1.5 space-y-1 pl-1">
+            <div className="mt-1 space-y-0.5 pl-1">
               {loggedIn ? (
                 <>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="w-full py-2 px-3 rounded-xl text-gray-700 hover:bg-gray-100 text-xs font-medium flex items-center gap-2.5 transition-colors cursor-pointer"
+                    className="w-full py-1.5 px-2.5 rounded-md text-[#37352F] hover:bg-[#EFEFEE] text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
                   >
-                    <FaSignOutAlt className="text-xs text-[#2b2ffb] shrink-0" />
+                    <FaSignOutAlt className="text-[11px] text-[#787774] shrink-0" />
                     <span>Log out</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleLogoutAll}
-                    className="w-full py-2 px-3 rounded-xl text-red-600 hover:bg-red-50 text-xs font-medium flex items-center gap-2.5 transition-colors cursor-pointer"
+                    className="w-full py-1.5 px-2.5 rounded-md text-[#B83232] hover:bg-[#FBEAEA] text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
                   >
-                    <FaSignOutAlt className="text-xs text-red-500 shrink-0" />
+                    <FaSignOutAlt className="text-[11px] shrink-0" />
                     <span>Log out of all devices</span>
                   </button>
                 </>
@@ -467,9 +431,9 @@ function Sidebar({
                     setShowProfileMenu(false);
                     navigate("/login");
                   }}
-                  className="w-full py-2 px-3 rounded-xl text-gray-700 hover:bg-gray-100 text-xs font-medium flex items-center gap-2.5 transition-colors cursor-pointer"
+                  className="w-full py-1.5 px-2.5 rounded-md text-[#37352F] hover:bg-[#EFEFEE] text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
                 >
-                  <FaSignInAlt className="text-xs text-[#2b2ffb] shrink-0" />
+                  <FaSignInAlt className="text-[11px] text-[#787774] shrink-0" />
                   <span>Login</span>
                 </button>
               )}
@@ -482,16 +446,14 @@ function Sidebar({
 
   return (
     <>
-      {/* Desktop Sticky Sidebar */}
       <aside className="hidden lg:block sticky top-0 h-screen shrink-0">
         {sidebarContent}
       </aside>
 
-      {/* Mobile Drawer Sidebar */}
       {isOpenMobile && (
         <div
           onClick={onCloseMobile}
-          className="fixed inset-0 z-50 lg:hidden bg-black/50 backdrop-blur-xs flex"
+          className="fixed inset-0 z-50 lg:hidden bg-black/30 backdrop-blur-[1px] flex"
         >
           <div
             onClick={(e) => e.stopPropagation()}

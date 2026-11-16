@@ -6,9 +6,22 @@ import RenameModal from "./components/RenameModal";
 import DirectoryList from "./components/DirectoryList";
 import ContextMenu from "./components/ContextMenu";
 import Sidebar from "./components/Sidebar";
+import ActionButtons from "./components/ActionButtons";
 import { DirectoryContext } from "./context/DirectoryContext";
+import { getFileCategory } from "./utils/fileHelpers";
 import { BsGrid, BsList } from "react-icons/bs";
-import { FaBars, FaSearch, FaTimes } from "react-icons/fa";
+import {
+  FaBars,
+  FaSearch,
+  FaTimes,
+  FaFolder,
+  FaFilePdf,
+  FaFileImage,
+  FaFileVideo,
+  FaFileArchive,
+  FaFileCode,
+  FaFileAlt,
+} from "react-icons/fa";
 
 import {
   getDirectoryItems,
@@ -144,16 +157,24 @@ function DirectoryView() {
     setSearchQuery("");
   }, [dirId]);
 
-  function getFileIcon(filename = "") {
-    const ext = filename.split(".").pop().toLowerCase();
-    switch (ext) {
-      case "pdf": return "pdf";
-      case "png": case "jpg": case "jpeg": case "gif": case "webp": case "svg": case "bmp": case "avif": return "image";
-      case "mp4": case "mov": case "avi": case "webm": case "mkv": case "m4v": case "ogg": return "video";
-      case "zip": case "rar": case "tar": case "gz": return "archive";
-      case "js": case "jsx": case "ts": case "tsx":
-      case "html": case "css": case "py": case "java": return "code";
-      default: return "alt";
+  const getFileIcon = getFileCategory;
+
+  function renderCardIcon(isDirectory, category) {
+    const iconClass = "text-3xl text-[#787774] group-hover:scale-105 transition-transform duration-200";
+    if (isDirectory) return <FaFolder className={iconClass} />;
+    switch (category) {
+      case "pdf":
+        return <FaFilePdf className={iconClass} />;
+      case "image":
+        return <FaFileImage className={iconClass} />;
+      case "video":
+        return <FaFileVideo className={iconClass} />;
+      case "archive":
+        return <FaFileArchive className={iconClass} />;
+      case "code":
+        return <FaFileCode className={iconClass} />;
+      default:
+        return <FaFileAlt className={iconClass} />;
     }
   }
 
@@ -382,8 +403,8 @@ function DirectoryView() {
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const combinedItems = normalizedQuery
     ? allItems.filter((item) =>
-        (item.name || "").toLowerCase().includes(normalizedQuery)
-      )
+      (item.name || "").toLowerCase().includes(normalizedQuery)
+    )
     : allItems;
 
   const isUploading = !!uploadItem?.isUploading;
@@ -414,8 +435,8 @@ function DirectoryView() {
         BASE_URL: backendBaseUrl,
       }}
     >
-      {/* Page wrapper — Clean Pinterest off-white background with Google Drive Sidebar */}
-      <div className="min-h-screen flex bg-[#f7f7f2] font-sans text-gray-900 antialiased">
+      {/* Page wrapper — Clean Notion-inspired neutral canvas */}
+      <div className="min-h-screen flex bg-white font-sans text-[#37352F] antialiased">
         <Sidebar
           currentDirId={dirId}
           recentFolders={recentFolders}
@@ -428,23 +449,22 @@ function DirectoryView() {
         />
 
         {/* Inner content container */}
-        <div className="flex-1 min-w-0 max-w-[1800px] mx-auto px-4 sm:px-8 py-6">
+        <div className="flex-1 min-w-0 max-w-[1600px] mx-auto px-4 sm:px-8 py-6">
 
-          {/* Error banner — Toast-style design */}
+          {/* Error banner */}
           {errorMessage && !isAccessDenied && (
-            <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-6 py-3 bg-[#2b2ffb] text-white text-sm font-medium rounded-full shadow-lg flex items-center gap-2 animate-bounce">
-
+            <div className="fixed top-5 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 bg-[#191919] text-white text-xs font-medium rounded-lg shadow-lg flex items-center gap-2">
               <span>⚠️</span> {errorMessage}
             </div>
           )}
 
-          {/* Header section — Clean, integrated aesthetic */}
+          {/* Header section */}
           <div className="mb-4 flex items-center gap-3">
             <button
               type="button"
               onClick={() => setIsMobileSidebarOpen(true)}
               aria-label="Open navigation menu"
-              className="lg:hidden p-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 shadow-xs cursor-pointer"
+              className="lg:hidden p-2 rounded-lg bg-[#F7F7F5] border border-[#E6E6E4] text-[#37352F] hover:bg-[#EFEFEE] cursor-pointer"
             >
               <FaBars className="text-sm" />
             </button>
@@ -466,24 +486,28 @@ function DirectoryView() {
             />
           </div>
 
-          {/* Controls Segment: Pinterest-styled List/Icon layout button + Search Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-6 px-2">
-            <div className="bg-gray-200/60 p-1 rounded-full flex gap-1">
+          {/* Controls Segment: View toggle + Search Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <div className="bg-[#F7F7F5] border border-[#E6E6E4] p-0.5 rounded-lg flex gap-0.5">
               <button
                 onClick={() => setViewMode("grid")}
-                className={`px-4 py-2 text-xs font-bold rounded-full transition-opacity duration-200 ${viewMode === "grid"
-                  ? "bg-[#2b2ffb] text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-300/50"
-                  }`}
+                aria-label="Grid view"
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
+                  viewMode === "grid"
+                    ? "bg-white text-[#191919] shadow-2xs border border-[#E6E6E4]"
+                    : "text-[#787774] hover:text-[#191919]"
+                }`}
               >
                 <BsGrid />
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`px-4 py-2 text-xs font-bold rounded-full transition-all duration-100 ${viewMode === "list"
-                  ? "bg-[#2b2ffb] text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-300/50"
-                  }`}
+                aria-label="List view"
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors cursor-pointer ${
+                  viewMode === "list"
+                    ? "bg-white text-[#191919] shadow-2xs border border-[#E6E6E4]"
+                    : "text-[#787774] hover:text-[#191919]"
+                }`}
               >
                 <BsList />
               </button>
@@ -491,20 +515,20 @@ function DirectoryView() {
 
             {/* Search Bar */}
             <div className="relative flex-1 max-w-sm min-w-[200px]">
-              <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none" />
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9B9A97] text-xs pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search files & folders..."
-                className="w-full pl-9 pr-9 py-2 rounded-full bg-white border border-gray-200 text-xs text-gray-800 placeholder-gray-400 shadow-2xs focus:outline-none focus:border-[#2b2ffb] focus:ring-2 focus:ring-[#2b2ffb]/15 transition-all"
+                className="w-full pl-8 pr-8 py-1.5 rounded-lg bg-[#F7F7F5] border border-[#E6E6E4] text-xs text-[#191919] placeholder-[#9B9A97] focus:bg-white focus:outline-none focus:border-[#37352F] focus:ring-2 focus:ring-[#37352F]/10 transition-all"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
                   aria-label="Clear search"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-700 cursor-pointer"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 rounded hover:bg-[#EFEFEE] flex items-center justify-center text-[#787774] hover:text-[#191919] cursor-pointer"
                 >
                   <FaTimes className="text-[10px]" />
                 </button>
@@ -515,40 +539,47 @@ function DirectoryView() {
           {/* Main Workspace Display Content */}
           {combinedItems.length === 0 ? (
             isAccessDenied ? (
-              <div className="bg-white rounded-3xl p-12 text-center max-w-md mx-auto shadow-sm border border-gray-100">
-                <p className="text-sm font-semibold text-gray-500 tracking-wider">
+              <div className="bg-[#F7F7F5] rounded-xl p-12 text-center max-w-md mx-auto border border-[#E6E6E4]">
+                <p className="text-sm font-medium text-[#787774]">
                   Access Denied or Directory Missing
                 </p>
               </div>
             ) : normalizedQuery ? (
-              <div className="bg-white rounded-3xl border border-dashed border-gray-300 p-14 text-center max-w-xl mx-auto shadow-sm">
-                <div className="mb-3 text-3xl text-gray-400">🔍</div>
-                <p className="text-base font-bold text-gray-700">
+              <div className="bg-[#F7F7F5] rounded-xl border border-dashed border-[#D3D3D0] p-14 text-center max-w-xl mx-auto">
+                <FaSearch className="mx-auto mb-3 text-xl text-[#9B9A97]" />
+                <p className="text-sm font-semibold text-[#191919]">
                   No results for "{searchQuery}"
                 </p>
-                <p className="text-xs text-gray-400 mt-1 mb-4">
+                <p className="text-xs text-[#787774] mt-1 mb-4">
                   Try a different file or folder name.
                 </p>
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="px-4 py-2 rounded-full bg-[#2b2ffb] text-white text-xs font-bold hover:bg-[#1f23d9] transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-[#191919] text-white text-xs font-medium hover:bg-[#2F2F2F] transition-colors cursor-pointer"
                 >
                   Clear Search
                 </button>
               </div>
             ) : (
-              <div className="bg-white rounded-3xl border border-dashed border-gray-300 p-16 text-center max-w-xl mx-auto shadow-sm">
-                <div className="mb-4 text-4xl text-gray-400">📂</div>
-                <p className="text-base font-bold text-gray-700">This folder is empty now!</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Upload files to build your collection.
+              <div className="rounded-xl border border-dashed border-[#E6E6E4] bg-[#FBFBFA] p-14 text-center max-w-xl mx-auto">
+                <FaFolder className="mx-auto mb-3 text-3xl text-[#9B9A97]" />
+                <p className="text-sm font-semibold text-[#191919]">
+                  This folder is empty
                 </p>
+                <p className="text-xs text-[#787774] mt-1 mb-5">
+                  Upload files or create a folder to get started.
+                </p>
+                <ActionButtons
+                  disabled={isAccessDenied}
+                  onCreateFolderClick={() => setShowCreateDirModal(true)}
+                  onUploadFilesClick={() => fileInputRef.current?.click()}
+                />
               </div>
             )
           ) : viewMode === "grid" ? (
-            /* Pinterest home layout (Masonry Fluid Grid System) */
-            <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-4 space-y-4 mx-auto pb-24">
+            /* Clean Notion-style Masonry Grid */
+            <div className="columns-2 sm:columns-3 md:columns-4 lg:columns-5 xl:columns-6 gap-3.5 space-y-3.5 mx-auto pb-24">
               {combinedItems.map((item) => {
                 const iconType = item.isDirectory ? "folder" : getFileIcon(item.name);
                 return (
@@ -563,20 +594,22 @@ function DirectoryView() {
                       e.preventDefault();
                       setActiveContextMenu((prev) => (prev === item.id ? null : item.id));
                     }}
-                    className={`break-inside-avoid bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 group cursor-pointer border border-gray-100 relative ${activeContextMenu === item.id ? "overflow-visible z-30" : "overflow-hidden"
-                      }`}
+                    className={`break-inside-avoid bg-white rounded-xl hover:shadow-sm transition-all duration-150 group cursor-pointer border border-[#E6E6E4] hover:border-[#D3D3D0] relative ${
+                      activeContextMenu === item.id ? "overflow-visible z-30" : "overflow-hidden"
+                    }`}
                   >
                     {/* Thumbnail or Icon Cover Canvas */}
                     <div
-                      className={`w-full rounded-t-2xl flex items-center justify-center overflow-hidden transition-colors ${item.isDirectory
-                        ? "h-32 bg-[#cded9e]/30"
-                        : iconType === "image" || iconType === "video"
-                          ? "h-48 bg-gray-100 relative"
-                          : "h-44 bg-gray-100/70"
-                        }`}
+                      className={`w-full rounded-t-xl flex items-center justify-center overflow-hidden border-b border-[#E6E6E4] transition-colors ${
+                        item.isDirectory
+                          ? "h-28 bg-[#F7F7F5]"
+                          : iconType === "image" || iconType === "video"
+                            ? "h-44 bg-[#F7F7F5] relative"
+                            : "h-36 bg-[#F7F7F5]"
+                      }`}
                     >
                       {!item.isDirectory && iconType === "image" ? (
-                        <div className="w-full h-full relative flex items-center justify-center bg-gray-100">
+                        <div className="w-full h-full relative flex items-center justify-center bg-[#F7F7F5]">
                           <img
                             src={
                               item.url ||
@@ -594,17 +627,18 @@ function DirectoryView() {
                             }}
                           />
                           <div className="fallback-icon hidden w-full h-full items-center justify-center">
-                            <span className="text-4xl">🖼️</span>
+                            {renderCardIcon(false, "image")}
                           </div>
                         </div>
                       ) : !item.isDirectory && iconType === "video" ? (
-                        <div className="w-full h-full relative flex items-center justify-center bg-gray-900">
+                        <div className="w-full h-full relative flex items-center justify-center bg-[#191919]">
                           <video
-                            src={`${item.url ||
+                            src={`${
+                              item.url ||
                               (item.file
                                 ? URL.createObjectURL(item.file)
                                 : `${backendBaseUrl}/file/${item.id}`)
-                              }#t=0.5`}
+                            }#t=0.5`}
                             preload="metadata"
                             muted
                             playsInline
@@ -615,38 +649,27 @@ function DirectoryView() {
                               if (fallback) fallback.classList.remove("hidden");
                             }}
                           />
-                          <div className="fallback-icon hidden w-full h-full items-center justify-center">
-                            <span className="text-4xl">🎬</span>
+                          <div className="fallback-icon hidden w-full h-full items-center justify-center bg-[#F7F7F5]">
+                            {renderCardIcon(false, "video")}
                           </div>
-                          {/* Play Icon Overlay Badge */}
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="w-11 h-11 rounded-full bg-black/60 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white shadow-lg group-hover:scale-110 group-hover:bg-[#2b2ffb] transition-all duration-200">
-                              <span className="text-sm ml-0.5">▶</span>
+                            <div className="w-10 h-10 rounded-full bg-black/65 backdrop-blur-xs border border-white/30 flex items-center justify-center text-white shadow-md group-hover:scale-110 group-hover:bg-[#191919] transition-all duration-200">
+                              <span className="text-xs ml-0.5">▶</span>
                             </div>
                           </div>
                         </div>
                       ) : (
-                        <span className="text-4xl group-hover:scale-110 transition-transform duration-200">
-                          {item.isDirectory
-                            ? "📁"
-                            : iconType === "pdf"
-                              ? "📕"
-                              : iconType === "archive"
-                                ? "📦"
-                                : iconType === "code"
-                                  ? "💻"
-                                  : "📄"}
-                        </span>
+                        renderCardIcon(item.isDirectory, iconType)
                       )}
                     </div>
 
-                    {/* Meta information row strip underneath layout image card */}
-                    <div className="p-3 flex justify-between items-center relative">
+                    {/* Card Footer */}
+                    <div className="p-2.5 flex justify-between items-center relative">
                       <div className="truncate pr-2">
-                        <p className="text-sm font-semibold text-gray-800 truncate">
+                        <p className="text-xs font-medium text-[#191919] truncate">
                           {item.name}
                         </p>
-                        <p className="text-[11px] text-gray-400">
+                        <p className="text-[11px] text-[#787774] mt-0.5">
                           {item.isDirectory
                             ? "Folder"
                             : iconType === "image"
@@ -654,12 +677,11 @@ function DirectoryView() {
                               : iconType === "video"
                                 ? "Video"
                                 : iconType === "pdf"
-                                  ? "PDF (Click to download)"
-                                  : "Document File"}
+                                  ? "PDF (Download)"
+                                  : "File"}
                         </p>
                       </div>
 
-                      {/* Context Menu Button Interaction Hook Toggle area */}
                       <div className="relative">
                         <button
                           onClick={(e) => {
@@ -667,7 +689,7 @@ function DirectoryView() {
                             e.preventDefault();
                             setActiveContextMenu((prev) => (prev === item.id ? null : item.id));
                           }}
-                          className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 font-bold text-sm"
+                          className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#EFEFEE] text-[#787774] hover:text-[#191919] font-bold text-xs cursor-pointer"
                         >
                           •••
                         </button>
@@ -687,22 +709,28 @@ function DirectoryView() {
               })}
             </div>
           ) : (
-            /* Structured clean minimal alternate list layout styling standard */
-            <div className="bg-white rounded-3xl p-4 shadow-sm border border-gray-100 max-w-5xl mx-auto mb-24">
+            /* Clean Notion-style Table List View */
+            <div className="bg-white rounded-xl border border-[#E6E6E4] max-w-5xl mx-auto mb-24 overflow-visible">
               <DirectoryList items={combinedItems} />
             </div>
           )}
 
-          {/* Create Directory Modal Overlay Backdrop View */}
+          {/* Create Directory Modal */}
           {showCreateDirModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm mx-4 overflow-hidden transform transition-all border border-gray-100">
-                <div className="px-6 py-4 bg-[#cded9e] flex justify-between items-center">
-                  <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
+            <div
+              onClick={() => setShowCreateDirModal(false)}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[1px]"
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 overflow-hidden border border-[#E6E6E4]"
+              >
+                <div className="px-5 py-3.5 bg-[#F7F7F5] border-b border-[#E6E6E4]">
+                  <h2 className="text-xs font-semibold text-[#191919] uppercase tracking-wider">
                     New Folder
                   </h2>
                 </div>
-                <div className="p-6 bg-[#f7f7f2]">
+                <div className="p-5">
                   <CreateDirectoryModal
                     newDirname={newDirname}
                     setNewDirname={setNewDirname}
@@ -714,16 +742,22 @@ function DirectoryView() {
             </div>
           )}
 
-          {/* Rename Modal View Container Overlay Backdrop View */}
+          {/* Rename Modal */}
           {showRenameModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm mx-4 overflow-hidden border border-gray-100">
-                <div className="px-6 py-4 bg-[#cded9e]">
-                  <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
+            <div
+              onClick={() => setShowRenameModal(false)}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[1px]"
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 overflow-hidden border border-[#E6E6E4]"
+              >
+                <div className="px-5 py-3.5 bg-[#F7F7F5] border-b border-[#E6E6E4]">
+                  <h2 className="text-xs font-semibold text-[#191919] uppercase tracking-wider">
                     Rename {renameType === "file" ? "File" : "Folder"}
                   </h2>
                 </div>
-                <div className="p-6 bg-[#f7f7f2]">
+                <div className="p-5">
                   <RenameModal
                     renameType={renameType}
                     renameValue={renameValue}
@@ -736,40 +770,46 @@ function DirectoryView() {
             </div>
           )}
 
-          {/* Dynamic Sync Progress Status Interface Strip Dock Panel bottom area */}
+          {/* Upload Progress Dock */}
           {uploadItem && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white shadow-xl rounded-full border border-gray-200 px-6 py-3 flex items-center gap-4 w-[90%] max-w-xl animate-fade-in">
-              <span className="text-xs font-bold text-gray-700 truncate max-w-[150px]">
+            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white shadow-lg rounded-xl border border-[#E6E6E4] px-5 py-3 flex items-center gap-4 w-[90%] max-w-lg">
+              <span className="text-xs font-medium text-[#191919] truncate max-w-[150px]">
                 {uploadItem.name}
               </span>
-              <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div className="flex-1 h-1.5 bg-[#E6E6E4] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[#2b2ffb] rounded-full transition-all duration-200"
+                  className="h-full bg-[#191919] rounded-full transition-all duration-200"
                   style={{ width: `${Math.round(uploadItem.progress || 0)}%` }}
                 />
               </div>
-              <span className="text-xs font-mono font-bold text-gray-600">
+              <span className="text-xs font-mono font-medium text-[#787774]">
                 {Math.round(uploadItem.progress || 0)}%
               </span>
               <button
                 onClick={() => handleCancelUpload(uploadItem.id)}
-                className="text-xs font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-full transition-colors"
+                className="text-xs font-medium text-[#B83232] hover:bg-[#FBEAEA] px-2.5 py-1 rounded-md transition-colors cursor-pointer"
               >
                 Cancel
               </button>
             </div>
           )}
 
-          {/* Safety Confirm System Deletion modal item view node overlay box */}
+          {/* Confirm Deletion Modal */}
           {deleteItem && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm mx-4 overflow-hidden border border-gray-100">
-                <div className="px-6 py-4 bg-red-50 border-b border-red-100">
-                  <h2 className="text-sm font-bold text-red-600 uppercase tracking-wider">
+            <div
+              onClick={() => setDeleteItem(null)}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[1px]"
+            >
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 overflow-hidden border border-[#E6E6E4]"
+              >
+                <div className="px-5 py-3.5 bg-[#F7F7F5] border-b border-[#E6E6E4]">
+                  <h2 className="text-xs font-semibold text-[#B83232] uppercase tracking-wider">
                     Confirm Deletion
                   </h2>
                 </div>
-                <div className="p-6 bg-[#f7f7f2]">
+                <div className="p-5">
                   <ConfirmDeleteModal
                     item={deleteItem}
                     onConfirm={confirmDelete}
@@ -815,20 +855,20 @@ function DirectoryView() {
                         `${backendBaseUrl}/file/${previewItem.id}?action=download`;
                       window.location.href = dlUrl;
                     }}
-                    className="px-4 py-2 rounded-full bg-[#cded9e] text-gray-900 hover:bg-[#b8df80] text-xs font-bold transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-lg bg-white text-[#191919] hover:bg-[#EFEFEE] text-xs font-medium transition-colors cursor-pointer"
                   >
                     Download
                   </button>
                   <button
                     onClick={() => openDetailsPopup(previewItem)}
-                    className="px-3.5 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-colors cursor-pointer"
+                    className="px-3.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition-colors cursor-pointer"
                   >
                     Details
                   </button>
                   <button
                     onClick={() => setPreviewItem(null)}
                     aria-label="Close preview"
-                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-lg font-bold transition-colors cursor-pointer"
+                    className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-sm font-medium transition-colors cursor-pointer"
                   >
                     ✕
                   </button>

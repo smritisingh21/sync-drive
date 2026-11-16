@@ -10,23 +10,31 @@ function ContextMenu({ item, isUploadingItem }) {
   } = useDirectoryContext();
 
   const menuClass =
-    "absolute bg-white border border-blue-400 shadow-md rounded text-sm z-50 right-2 top-4/5 overflow-hidden";
-  const itemClass = "px-4 py-2 hover:bg-blue-100 cursor-pointer";
+    "bg-white border border-[#E6E6E4] shadow-lg rounded-lg py-1 text-xs text-[#37352F] min-w-[140px] z-50 overflow-hidden";
+  const itemClass =
+    "px-3.5 py-2 hover:bg-[#EFEFEE] cursor-pointer transition-colors whitespace-nowrap font-medium";
 
   if (item.isDirectory) {
     return (
-      <div className={menuClass}>
+      <div className={menuClass} onClick={(e) => e.stopPropagation()}>
         <div
           className={itemClass}
           onClick={() => openRenameModal("directory", item.id, item.name)}
         >
           Rename
         </div>
-        <div className={itemClass} onClick={() => setDeleteItem(item)}>
-          Delete
-        </div>
-        <div className={itemClass} onClick={() => openDetailsPopup(item)}>
+        <div
+          className={itemClass}
+          onClick={() => openDetailsPopup(item)}
+        >
           Details
+        </div>
+        <div className="my-1 border-t border-[#E6E6E4]" />
+        <div
+          className="px-3.5 py-2 hover:bg-[#FBEAEA] text-[#B83232] cursor-pointer transition-colors whitespace-nowrap font-medium"
+          onClick={() => setDeleteItem(item)}
+        >
+          Delete
         </div>
       </div>
     );
@@ -34,9 +42,12 @@ function ContextMenu({ item, isUploadingItem }) {
 
   if (isUploadingItem && item.isUploading) {
     return (
-      <div className={menuClass}>
-        <div className={itemClass} onClick={() => handleCancelUpload(item.id)}>
-          Cancel
+      <div className={menuClass} onClick={(e) => e.stopPropagation()}>
+        <div
+          className="px-3.5 py-2 hover:bg-[#FBEAEA] text-[#B83232] cursor-pointer transition-colors whitespace-nowrap font-medium"
+          onClick={() => handleCancelUpload(item.id)}
+        >
+          Cancel upload
         </div>
       </div>
     );
@@ -46,7 +57,7 @@ function ContextMenu({ item, isUploadingItem }) {
     BASE_URL || import.meta.env.VITE_BACKEND_BASE_URL || "http://localhost:4000";
 
   return (
-    <div className={menuClass}>
+    <div className={menuClass} onClick={(e) => e.stopPropagation()}>
       <div
         className={itemClass}
         onClick={() =>
@@ -62,11 +73,18 @@ function ContextMenu({ item, isUploadingItem }) {
       >
         Rename
       </div>
-      <div className={itemClass} onClick={() => setDeleteItem(item)}>
-        Delete
-      </div>
-      <div className={itemClass} onClick={() => openDetailsPopup(item)}>
+      <div
+        className={itemClass}
+        onClick={() => openDetailsPopup(item)}
+      >
         Details
+      </div>
+      <div className="my-1 border-t border-[#E6E6E4]" />
+      <div
+        className="px-3.5 py-2 hover:bg-[#FBEAEA] text-[#B83232] cursor-pointer transition-colors whitespace-nowrap font-medium"
+        onClick={() => setDeleteItem(item)}
+      >
+        Delete
       </div>
     </div>
   );

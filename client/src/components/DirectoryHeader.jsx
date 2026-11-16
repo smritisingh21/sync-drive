@@ -17,14 +17,14 @@ function DirectoryHeader({
 
   const allCrumbs = previewItem
     ? [
-      ...folderCrumbs.map((c) => ({ ...c, isFile: false })),
-      {
-        id: previewItem.id,
-        name: previewItem.name,
-        isFile: true,
-        fileItem: previewItem,
-      },
-    ]
+        ...folderCrumbs.map((c) => ({ ...c, isFile: false })),
+        {
+          id: previewItem.id,
+          name: previewItem.name,
+          isFile: true,
+          fileItem: previewItem,
+        },
+      ]
     : folderCrumbs.map((c) => ({ ...c, isFile: false }));
 
   const handleCrumbClick = (crumb) => {
@@ -37,7 +37,7 @@ function DirectoryHeader({
   };
 
   return (
-    <header className="flex items-center border-b border-gray-300 py-2.5 mb-2 min-w-0">
+    <header className="flex items-center border-b border-[#E6E6E4] py-2.5 mb-2 min-w-0">
       <nav
         aria-label="Breadcrumb"
         className="flex flex-wrap items-center gap-y-1 gap-x-1 min-w-0"
@@ -52,30 +52,25 @@ function DirectoryHeader({
               className="flex items-center gap-1"
             >
               {index > 0 && (
-                <FaChevronRight className="text-gray-400 text-[10px] shrink-0 mx-0.5" />
+                <FaChevronRight className="text-[#9B9A97] text-[10px] shrink-0 mx-0.5" />
               )}
 
               <button
                 type="button"
                 onClick={() => handleCrumbClick(crumb)}
                 title={crumb.name}
-                className={`rounded-lg px-2 py-1 flex items-center gap-1.5 transition-colors cursor-pointer ${isLast
-                  ? "text-base sm:text-lg font-semibold text-gray-900 bg-gray-200/50 hover:bg-gray-200"
-                  : "text-sm sm:text-base font-medium text-gray-600 hover:text-[#2b2ffb] hover:bg-gray-200/60"
-                  }`}
+                className={`rounded-md px-2 py-1 flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  isLast
+                    ? "text-base sm:text-lg font-semibold text-[#191919] bg-[#F7F7F5]"
+                    : "text-sm font-medium text-[#787774] hover:text-[#191919] hover:bg-[#EFEFEE]"
+                }`}
               >
                 {isRoot ? (
-                  <FaHome
-                    className={`text-sm shrink-0 ${isLast ? "text-[#2b2ffb]" : "text-gray-500"
-                      }`}
-                  />
+                  <FaHome className="text-xs text-[#787774] shrink-0" />
                 ) : crumb.isFile ? (
-                  <FaFile className="text-xs text-[#2b2ffb] shrink-0" />
+                  <FaFile className="text-xs text-[#787774] shrink-0" />
                 ) : (
-                  <FaFolder
-                    className={`text-xs shrink-0 ${isLast ? "text-amber-500" : "text-amber-500/80"
-                      }`}
-                  />
+                  <FaFolder className="text-xs text-[#787774] shrink-0" />
                 )}
                 <span>{crumb.name}</span>
               </button>

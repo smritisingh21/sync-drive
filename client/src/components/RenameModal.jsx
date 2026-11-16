@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 
 function RenameModal({
-  renameType,
   renameValue,
   setRenameValue,
   onClose,
@@ -25,47 +24,34 @@ function RenameModal({
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [onClose]);
 
   return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white p-6 rounded-lg shadow-md w-[90%] max-w-md"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-lg font-semibold mb-4">
-          Rename {renameType === "file" ? "File" : "Folder"}
-        </h2>
-        <form onSubmit={onRenameSubmit}>
-          <input
-            ref={inputRef}
-            type="text"
-            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Enter new name"
-            value={renameValue}
-            onChange={(e) => setRenameValue(e.target.value)}
-          />
-          <div className="flex justify-end gap-2 mt-4">
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              type="submit"
-            >
-              Save
-            </button>
-            <button
-              className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
-              type="button"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+    <form onSubmit={onRenameSubmit} className="space-y-4">
+      <input
+        ref={inputRef}
+        type="text"
+        className="w-full px-3 py-2 bg-white border border-[#E6E6E4] rounded-lg text-sm text-[#191919] placeholder-[#9B9A97] focus:outline-none focus:border-[#37352F] focus:ring-2 focus:ring-[#37352F]/10 transition-all"
+        placeholder="Enter new name"
+        value={renameValue}
+        onChange={(e) => setRenameValue(e.target.value)}
+      />
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-3.5 py-2 rounded-lg bg-white border border-[#E6E6E4] hover:bg-[#EFEFEE] text-[#37352F] text-xs font-medium transition-colors cursor-pointer"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 rounded-lg bg-[#191919] hover:bg-[#2F2F2F] text-white text-xs font-medium transition-colors cursor-pointer"
+        >
+          Save
+        </button>
       </div>
-    </div>
+    </form>
   );
 }
 
