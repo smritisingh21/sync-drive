@@ -5,9 +5,10 @@ import CreateDirectoryModal from "./components/CreateDirectoryModal";
 import RenameModal from "./components/RenameModal";
 import DirectoryList from "./components/DirectoryList";
 import ContextMenu from "./components/ContextMenu";
+import Sidebar from "./components/Sidebar";
 import { DirectoryContext } from "./context/DirectoryContext";
-import { BsGrid } from "react-icons/bs";
-import { BsList } from "react-icons/bs";
+import { BsGrid, BsList } from "react-icons/bs";
+import { FaBars } from "react-icons/fa";
 
 import {
   getDirectoryItems,
@@ -48,7 +49,7 @@ function DirectoryView() {
 
 
   const [viewMode, setViewMode] = useState(() => {
-    return localStorage.getItem("syncDriveViewMode") || "list";
+    return localStorage.getItem("syncDriveViewMode") || "grid";
   });
   useEffect(() => {
     localStorage.setItem("syncDriveViewMode", viewMode);
@@ -62,6 +63,17 @@ function DirectoryView() {
   const [detailsItem, setDetailsItem] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
   const [previewItem, setPreviewItem] = useState(null);
+  const [sidebarRefreshKey, setSidebarRefreshKey] = useState(0);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  const [recentFolders, setRecentFolders] = useState(() => {
+    try {
+      const saved = localStorage.getItem("syncDriveRecentFolders");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   const openDetailsPopup = (item) => setDetailsItem(item);
   const closeDetailsPopup = () => setDetailsItem(null);
@@ -72,6 +84,20 @@ function DirectoryView() {
       setDirectoryName(dirId ? data.name : "My Drive");
       setDirectoriesList([...data.directories].reverse());
       setFilesList([...data.files].reverse());
+
+      if (dirId && data.name) {
+        setRecentFolders((prev) => {
+          const updated = [
+            { id: dirId, name: data.name, openedAt: Date.now() },
+            ...prev.filter((f) => String(f.id) !== String(dirId)),
+          ].slice(0, 3);
+          localStorage.setItem(
+            "syncDriveRecentFolders",
+            JSON.stringify(updated)
+          );
+          return updated;
+        });
+      }
     } catch (err) {
       if (err.response?.status === 401) navigate("/login");
       else setErrorMessage(err.response?.data?.error || err.message);
@@ -141,7 +167,7 @@ function DirectoryView() {
         if (idx !== -1) {
           setPreviewItem(
             previewableFiles[
-              (idx - 1 + previewableFiles.length) % previewableFiles.length
+            (idx - 1 + previewableFiles.length) % previewableFiles.length
             ]
           );
         }
@@ -243,8 +269,17 @@ function DirectoryView() {
 
   async function confirmDelete(item) {
     try {
-      if (item.isDirectory) await deleteDirectory(item.id);
-      else await deleteFile(item.id);
+      if (item.isDirectory) {
+        await deleteDirectory(item.id);
+        setRecentFolders((prev) => {
+          const updated = prev.filter((f) => String(f.id) !== String(item.id));
+          localStorage.setItem("syncDriveRecentFolders", JSON.stringify(updated));
+          return updated;
+        });
+        setSidebarRefreshKey((k) => k + 1);
+      } else {
+        await deleteFile(item.id);
+      }
       setDeleteItem(null);
       loadDirectory();
     } catch (err) {
@@ -258,6 +293,7 @@ function DirectoryView() {
       await createDirectory(dirId, newDirname);
       setNewDirname("New Folder");
       setShowCreateDirModal(false);
+      setSidebarRefreshKey((k) => k + 1);
       loadDirectory();
     } catch (err) {
       setErrorMessage(err.response?.data?.error || err.message);
@@ -274,8 +310,19 @@ function DirectoryView() {
   async function handleRenameSubmit(e) {
     e.preventDefault();
     try {
-      if (renameType === "file") await renameFile(renameId, renameValue);
-      else await renameDirectory(renameId, renameValue);
+      if (renameType === "file") {
+        await renameFile(renameId, renameValue);
+      } else {
+        await renameDirectory(renameId, renameValue);
+        setRecentFolders((prev) => {
+          const updated = prev.map((f) =>
+            String(f.id) === String(renameId) ? { ...f, name: renameValue } : f
+          );
+          localStorage.setItem("syncDriveRecentFolders", JSON.stringify(updated));
+          return updated;
+        });
+        setSidebarRefreshKey((k) => k + 1);
+      }
 
       setShowRenameModal(false);
       setRenameValue("");
@@ -326,11 +373,21 @@ function DirectoryView() {
         BASE_URL: backendBaseUrl,
       }}
     >
-      {/* Page wrapper — Clean Pinterest off-white background */}
-      <div className="min-h-screen bg-[#f7f7f2] font-sans text-gray-900 antialiased">
+      {/* Page wrapper — Clean Pinterest off-white background with Google Drive Sidebar */}
+      <div className="min-h-screen flex bg-[#f7f7f2] font-sans text-gray-900 antialiased">
+        <Sidebar
+          currentDirId={dirId}
+          recentFolders={recentFolders}
+          onCreateFolderClick={() => setShowCreateDirModal(true)}
+          onUploadFilesClick={() => fileInputRef.current?.click()}
+          refreshTrigger={sidebarRefreshKey}
+          disabled={isAccessDenied}
+          isOpenMobile={isMobileSidebarOpen}
+          onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        />
 
         {/* Inner content container */}
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-8 py-6">
+        <div className="flex-1 min-w-0 max-w-[1800px] mx-auto px-4 sm:px-8 py-6">
 
           {/* Error banner — Toast-style design */}
           {errorMessage && !isAccessDenied && (
@@ -341,15 +398,25 @@ function DirectoryView() {
           )}
 
           {/* Header section — Clean, integrated aesthetic */}
-          <div className="mb-4">
-            <DirectoryHeader
-              directoryName={directoryName}
-              onCreateFolderClick={() => setShowCreateDirModal(true)}
-              onUploadFilesClick={() => fileInputRef.current.click()}
-              fileInputRef={fileInputRef}
-              handleFileSelect={handleFileSelect}
-              disabled={isAccessDenied}
-            />
+          <div className="mb-4 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsMobileSidebarOpen(true)}
+              aria-label="Open navigation menu"
+              className="lg:hidden p-2.5 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 shadow-xs cursor-pointer"
+            >
+              <FaBars className="text-sm" />
+            </button>
+            <div className="flex-1 min-w-0">
+              <DirectoryHeader
+                directoryName={directoryName}
+                onCreateFolderClick={() => setShowCreateDirModal(true)}
+                onUploadFilesClick={() => fileInputRef.current.click()}
+                fileInputRef={fileInputRef}
+                handleFileSelect={handleFileSelect}
+                disabled={isAccessDenied}
+              />
+            </div>
           </div>
 
           {/* Controls Segment: Pinterest-styled List/Icon layout button */}
@@ -447,12 +514,11 @@ function DirectoryView() {
                       ) : !item.isDirectory && iconType === "video" ? (
                         <div className="w-full h-full relative flex items-center justify-center bg-gray-900">
                           <video
-                            src={`${
-                              item.url ||
+                            src={`${item.url ||
                               (item.file
                                 ? URL.createObjectURL(item.file)
                                 : `${backendBaseUrl}/file/${item.id}`)
-                            }#t=0.5`}
+                              }#t=0.5`}
                             preload="metadata"
                             muted
                             playsInline
@@ -712,8 +778,8 @@ function DirectoryView() {
                       if (idx !== -1) {
                         setPreviewItem(
                           previewableFiles[
-                            (idx - 1 + previewableFiles.length) %
-                              previewableFiles.length
+                          (idx - 1 + previewableFiles.length) %
+                          previewableFiles.length
                           ]
                         );
                       }
