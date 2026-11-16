@@ -156,7 +156,7 @@ function DirectoryView() {
     if (!previewItem) return;
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
-        setPreviewItem(null);
+        if (!detailsItem) setPreviewItem(null);
       } else if (e.key === "ArrowRight" && previewableFiles.length > 1) {
         const idx = previewableFiles.findIndex((f) => f.id === previewItem.id);
         if (idx !== -1) {
@@ -408,15 +408,15 @@ function DirectoryView() {
               <FaBars className="text-sm" />
             </button>
             <div className="flex-1 min-w-0">
-              <DirectoryHeader
-                directoryName={directoryName}
-                onCreateFolderClick={() => setShowCreateDirModal(true)}
-                onUploadFilesClick={() => fileInputRef.current.click()}
-                fileInputRef={fileInputRef}
-                handleFileSelect={handleFileSelect}
-                disabled={isAccessDenied}
-              />
+              <DirectoryHeader directoryName={directoryName} />
             </div>
+            <input
+              ref={fileInputRef}
+              id="file-upload"
+              type="file"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
           </div>
 
           {/* Controls Segment: Pinterest-styled List/Icon layout button */}
@@ -650,22 +650,6 @@ function DirectoryView() {
             </div>
           )}
 
-          {/* Details Metadata Drawer Info Interface Popup Display layout */}
-          {detailsItem && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm mx-4 overflow-hidden border border-gray-100">
-                <div className="px-6 py-4 bg-[#cded9e]">
-                  <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wider">
-                    Item Metadata Details
-                  </h2>
-                </div>
-                <div className="p-6 bg-[#f7f7f2]">
-                  <DetailsPopup item={detailsItem} onClose={closeDetailsPopup} />
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Dynamic Sync Progress Status Interface Strip Dock Panel bottom area */}
           {uploadItem && (
             <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-white shadow-xl rounded-full border border-gray-200 px-6 py-3 flex items-center gap-4 w-[90%] max-w-xl animate-fade-in">
@@ -848,6 +832,13 @@ function DirectoryView() {
               </div>
             </div>
           )}
+
+          {/* Sliding Right Sidebar for Item Details (renders above preview modal) */}
+          <DetailsPopup
+            item={detailsItem}
+            onClose={closeDetailsPopup}
+            currentPath={directoryName}
+          />
 
         </div>
       </div>

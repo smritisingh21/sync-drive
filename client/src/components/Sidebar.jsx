@@ -7,11 +7,15 @@ import {
   FaChevronDown,
   FaHome,
   FaClock,
-  FaPlus,
   FaUpload,
   FaFolderPlus,
+  FaSignOutAlt,
+  FaSignInAlt,
+  FaUser,
 } from "react-icons/fa";
 import { getDirectoryItems } from "../api/directoryApi";
+import { fetchUser, logoutUser, logoutAllSessions } from "../api/userApi";
+
 
 function FolderTreeNode({
   folder,
@@ -61,21 +65,19 @@ function FolderTreeNode({
       <div
         onClick={() => onSelectFolder(folder.id)}
         style={{ paddingLeft: `${depth * 14 + 10}px` }}
-        className={`group flex items-center gap-1.5 py-1.5 pr-2.5 rounded-xl text-xs font-medium cursor-pointer transition-all duration-150 ${
-          isSelected
-            ? "bg-[#2b2ffb] text-white font-semibold shadow-sm"
-            : "text-gray-700 hover:bg-gray-200/70"
-        }`}
+        className={`group flex items-center gap-1.5 py-1.5 pr-2.5 rounded-xl text-xs font-medium cursor-pointer transition-all duration-150 ${isSelected
+          ? "bg-blue-800/80 text-white font-semibold shadow-sm"
+          : "text-gray-700 hover:bg-gray-200/70"
+          }`}
       >
         <button
           type="button"
           onClick={handleToggleExpand}
           aria-label={isExpanded ? "Collapse folder" : "Expand folder"}
-          className={`w-4 h-4 flex items-center justify-center rounded transition-colors shrink-0 ${
-            isSelected
-              ? "text-white/90 hover:bg-white/20"
-              : "text-gray-400 hover:text-gray-700 hover:bg-gray-300/60"
-          }`}
+          className={`w-4 h-4 flex items-center justify-center rounded transition-colors shrink-0 ${isSelected
+            ? "text-white/90 hover:bg-white/20"
+            : "text-gray-400 hover:text-gray-700 hover:bg-gray-300/60"
+            }`}
         >
           {isExpanded ? (
             <FaChevronDown className="text-[9px]" />
@@ -87,15 +89,13 @@ function FolderTreeNode({
         <span className="shrink-0">
           {isExpanded ? (
             <FaFolderOpen
-              className={`text-sm ${
-                isSelected ? "text-[#cded9e]" : "text-amber-500"
-              }`}
+              className={`text-sm ${isSelected ? "text-[#cded9e]" : "text-amber-500"
+                }`}
             />
           ) : (
             <FaFolder
-              className={`text-sm ${
-                isSelected ? "text-[#cded9e]" : "text-amber-500"
-              }`}
+              className={`text-sm ${isSelected ? "text-[#cded9e]" : "text-amber-500"
+                }`}
             />
           )}
         </span>
@@ -151,7 +151,55 @@ function Sidebar({
   const [rootFolders, setRootFolders] = useState([]);
   const [isRootExpanded, setIsRootExpanded] = useState(true);
   const [loadingRoot, setLoadingRoot] = useState(false);
-  const [showNewDropdown, setShowNewDropdown] = useState(false);
+  const [usedStorageInBytes, setUsedStorageInBytes] = useState(0);
+  const [maxStorageInBytes, setMaxStorageInBytes] = useState(1073741824);
+  const [userName, setUserName] = useState("Guest User");
+  const [userEmail, setUserEmail] = useState("guest@example.com");
+  const [userPicture, setUserPicture] = useState("");
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const usedGB = usedStorageInBytes / 1024 ** 3;
+  const totalGB = maxStorageInBytes / 1024 ** 3;
+  const usedPercent = Math.min((usedGB / totalGB) * 100 || 0, 100);
+
+  useEffect(() => {
+    fetchUser()
+      .then((user) => {
+        setUserName(user.name || "User");
+        setUserEmail(user.email || "");
+        setUserPicture(user.picture || "");
+        setUsedStorageInBytes(user.usedStorageInBytes || 0);
+        setMaxStorageInBytes(user.maxStorageInBytes || 1073741824);
+        setLoggedIn(true);
+      })
+      .catch(() => {
+        setLoggedIn(false);
+        setUserName("Guest User");
+        setUserEmail("guest@example.com");
+        setUserPicture("");
+      });
+  }, [refreshTrigger]);
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      navigate("/login");
+    }
+  };
+
+  const handleLogoutAll = async () => {
+    try {
+      await logoutAllSessions();
+    } catch (err) {
+      console.error("Logout all error:", err);
+    } finally {
+      navigate("/login");
+    }
+  };
 
   const isHomeActive = !currentDirId;
 
@@ -188,7 +236,7 @@ function Sidebar({
           onClick={() => handleSelectFolder("")}
           className="flex items-center gap-2.5 cursor-pointer group"
         >
-          <div className="w-8 h-8 rounded-xl bg-[#2b2ffb] flex items-center justify-center text-white font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
+          <div className="w-8 h-8 rounded-xl bg-blue-800/80 flex items-center justify-center text-white font-bold text-sm shadow-sm group-hover:scale-105 transition-transform">
             SD
           </div>
           <span className="text-base font-extrabold tracking-tight text-gray-900">
@@ -206,68 +254,44 @@ function Sidebar({
           </button>
         )}
       </div>
-
-      {/* Google Drive style "+ New" Action Button */}
-      <div className="px-4 mb-4 relative">
+      <div className="grid grid-cols-2 gap-0.5 mb-5">
         <button
           type="button"
           disabled={disabled}
-          onClick={() => setShowNewDropdown((prev) => !prev)}
-          className="w-full py-2.5 px-4 rounded-2xl bg-[#cded9e] hover:bg-[#c1e68a] disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 font-bold text-xs shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+          onClick={() => {
+            onCreateFolderClick?.();
+            onCloseMobile?.();
+          }}
+          className=" m-2 py-2 px-2 rounded-xl bg-[#cded9e] hover:bg-[#c1e68a] disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
         >
-          <FaPlus className="text-xs" />
-          <span>New</span>
+          <FaFolderPlus className="text-xs" />
+          <span>New Folder</span>
         </button>
-
-        {showNewDropdown && (
-          <div
-            onMouseLeave={() => setShowNewDropdown(false)}
-            className="absolute left-4 right-4 top-12 z-40 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 overflow-hidden"
-          >
-            <button
-              type="button"
-              onClick={() => {
-                setShowNewDropdown(false);
-                onCreateFolderClick?.();
-                onCloseMobile?.();
-              }}
-              className="w-full px-4 py-2.5 text-left text-xs font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-2.5 cursor-pointer"
-            >
-              <FaFolderPlus className="text-amber-500 text-sm" />
-              <span>New Folder</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowNewDropdown(false);
-                onUploadFilesClick?.();
-                onCloseMobile?.();
-              }}
-              className="w-full px-4 py-2.5 text-left text-xs font-medium text-gray-700 hover:bg-gray-100 flex items-center gap-2.5 cursor-pointer"
-            >
-              <FaUpload className="text-[#2b2ffb] text-sm" />
-              <span>File Upload</span>
-            </button>
-          </div>
-        )}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => {
+            onUploadFilesClick?.();
+            onCloseMobile?.();
+          }}
+          className="m-2 py-2 px-2 rounded-xl bg-blue-800/80 hover:bg-blue-800/20 disabled:opacity-50 disabled:cursor-not-allowed text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+        >
+          <FaUpload className="text-xs" />
+          <span>Upload</span>
+        </button>
       </div>
 
       {/* Scrollable Navigation Content */}
       <div className="flex-1 overflow-y-auto px-3 pb-6 space-y-6">
         {/* Primary Navigation & Nested Folder Tree */}
         <div>
-          <p className="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-            Navigation
-          </p>
-
           {/* Home / My Drive Root Item */}
           <div
             onClick={() => handleSelectFolder("")}
-            className={`flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all ${
-              isHomeActive
-                ? "bg-[#2b2ffb] text-white shadow-sm"
-                : "text-gray-800 hover:bg-gray-200/70"
-            }`}
+            className={`flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all ${isHomeActive
+              ? "bg-blue-800/80 text-white shadow-sm"
+              : "text-gray-800 hover:bg-gray-200/70"
+              }`}
           >
             <button
               type="button"
@@ -276,11 +300,10 @@ function Sidebar({
                 setIsRootExpanded((prev) => !prev);
               }}
               aria-label={isRootExpanded ? "Collapse My Drive" : "Expand My Drive"}
-              className={`w-4 h-4 flex items-center justify-center rounded transition-colors shrink-0 ${
-                isHomeActive
-                  ? "text-white/90 hover:bg-white/20"
-                  : "text-gray-400 hover:text-gray-700 hover:bg-gray-300/60"
-              }`}
+              className={`w-4 h-4 flex items-center justify-center rounded transition-colors shrink-0 ${isHomeActive
+                ? "text-white/90 hover:bg-white/20"
+                : "text-gray-400 hover:text-gray-700 hover:bg-gray-300/60"
+                }`}
             >
               {isRootExpanded ? (
                 <FaChevronDown className="text-[9px]" />
@@ -290,9 +313,8 @@ function Sidebar({
             </button>
 
             <FaHome
-              className={`text-sm shrink-0 ${
-                isHomeActive ? "text-[#cded9e]" : "text-[#2b2ffb]"
-              }`}
+              className={`text-sm shrink-0 ${isHomeActive ? "text-[#cded9e]" : "text-[#2b2ffb]"
+                }`}
             />
             <span className="truncate flex-1">Home (My Drive)</span>
           </div>
@@ -346,21 +368,111 @@ function Sidebar({
                   <div
                     key={folder.id}
                     onClick={() => handleSelectFolder(folder.id)}
-                    className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium cursor-pointer transition-all ${
-                      isSelected
-                        ? "bg-[#2b2ffb] text-white font-semibold shadow-sm"
-                        : "text-gray-700 hover:bg-gray-200/70"
-                    }`}
+                    className={`flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium cursor-pointer transition-all ${isSelected
+                      ? "bg-blue-800/80 text-white font-semibold shadow-sm"
+                      : "text-gray-700 hover:bg-gray-200/70"
+                      }`}
                   >
                     <FaFolder
-                      className={`text-sm shrink-0 ${
-                        isSelected ? "text-[#cded9e]" : "text-amber-500"
-                      }`}
+                      className={`text-sm shrink-0 ${isSelected ? "text-[#cded9e]" : "text-amber-500"
+                        }`}
                     />
                     <span className="truncate flex-1">{folder.name}</span>
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Section: Storage & Profile Details */}
+      <div className="border-t border-gray-200/80 px-3 py-3 space-y-3">
+        {/* Storage usage */}
+        <div className="px-1">
+          <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#2b2ffb] rounded-full"
+              style={{ width: `${usedPercent}%` }}
+            />
+          </div>
+          <p className="mt-1 text-[10px] text-gray-500">
+            {usedGB.toFixed(2)} GB of {totalGB.toFixed(0)} GB used
+          </p>
+        </div>
+
+        {/* Profile Details + Dropdown Button */}
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowProfileMenu((prev) => !prev)}
+            className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer text-left"
+          >
+            {userPicture ? (
+              <img
+                src={userPicture}
+                alt={userName}
+                className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-[#2b2ffb]/10 text-[#2b2ffb] flex items-center justify-center shrink-0">
+                <FaUser className="text-xs" />
+              </div>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-gray-800 truncate">
+                {userName}
+              </p>
+              <p className="text-[10px] text-gray-500 truncate">
+                {userEmail}
+              </p>
+            </div>
+
+            <span className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 shrink-0">
+              {showProfileMenu ? (
+                <FaChevronDown className="text-[10px]" />
+              ) : (
+                <FaChevronRight className="text-[10px]" />
+              )}
+            </span>
+          </button>
+
+          {/* Dropdown Options under Profile Details */}
+          {showProfileMenu && (
+            <div className="mt-1.5 space-y-1 pl-1">
+              {loggedIn ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="w-full py-2 px-3 rounded-xl text-gray-700 hover:bg-gray-100 text-xs font-medium flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <FaSignOutAlt className="text-xs text-[#2b2ffb] shrink-0" />
+                    <span>Log out</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleLogoutAll}
+                    className="w-full py-2 px-3 rounded-xl text-red-600 hover:bg-red-50 text-xs font-medium flex items-center gap-2.5 transition-colors cursor-pointer"
+                  >
+                    <FaSignOutAlt className="text-xs text-red-500 shrink-0" />
+                    <span>Log out of all devices</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    navigate("/login");
+                  }}
+                  className="w-full py-2 px-3 rounded-xl text-gray-700 hover:bg-gray-100 text-xs font-medium flex items-center gap-2.5 transition-colors cursor-pointer"
+                >
+                  <FaSignInAlt className="text-xs text-[#2b2ffb] shrink-0" />
+                  <span>Login</span>
+                </button>
+              )}
             </div>
           )}
         </div>
