@@ -1,4 +1,4 @@
-# Sync Drive 🚀
+# Sync Drive - – Cloud Storage and File Management Platform
 
 A modern, full-stack cloud storage web application inspired by Google Drive and Pinterest. Built with a **React (Vite)** frontend and a **Node.js (Express)** backend, featuring direct **AWS S3** uploads via presigned URLs, **Redis** session storage, **MongoDB Atlas**, and flexible masonry grid / list views.
 
@@ -197,5 +197,3 @@ Ensure your S3 bucket has the following Cross-Origin Resource Sharing (CORS) rul
 
 ---
 
-## 📄 License
-This project is open source and available under the [ISC License](LICENSE).
